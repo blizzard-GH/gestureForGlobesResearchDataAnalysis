@@ -19,6 +19,7 @@ library(car)
 library(ggplot2)
 library(lubridate)
 library(scales)
+library(ARTool)
 
 data <- read_csv("study_tasks.csv")
 demographic <- read_csv("final_introductory.csv")
@@ -246,26 +247,22 @@ plot(density(data.positioning.matched$match_accuracy_result),
 # So, we cannot use one way ANOVA, instead, we use Wilcoxon signed-rank test
 
 #### Statistical tests 
-data.positioning.matched.accuracy_avg.wide <- data.positioning.matched %>%
+data.positioning.matched.accuracy_avg.long <- data.positioning.matched %>%
   group_by(UserID, positionCondition) %>%
-  summarise(mean_accuracy = mean(match_accuracy_result, na.rm = TRUE), .groups = 'drop') %>%
-  pivot_wider(names_from = positionCondition, values_from = mean_accuracy)
+  summarise(mean_accuracy = mean(match_accuracy_result, na.rm = TRUE), .groups = 'drop')
 
-wilcox.test(data.positioning.matched.accuracy_avg.wide$rotatingGlobe, data.positioning.matched.accuracy_avg.wide$nonRotatingGlobe, paired = TRUE)
+data.positioning.matched.art <- art(mean_accuracy ~ positionCondition + (1|UserID), data = data.positioning.matched.accuracy_avg.long)
 
-# Since p = 0.8501, which is much greater than the conventional threshold of 0.05:
-# You fail to reject the null hypothesis.
-# This means there is no evidence of a statistically significant difference in accuracy between the rotatingGlobe and nonRotatingGlobe conditions.
-# In fact, the very high p-value suggests that the differences are minimal and likely due to random variation.
+anova(data.positioning.matched.art)
 
-# This Wilcoxon signed-rank test showed no significant difference in match accuracy between the rotatingGlobe and nonRotatingGlobe conditions, V = 42, p = .85.
+# Factor tested: positionCondition (e.g., rotatingGlobe vs nonRotatingGlobe)
+# F-statistic: 0.33588 — this tells us the ratio of variance between the groups to the variance within groups (after aligned rank transformation).
+# Degrees of freedom (df): 1 for the factor, and 11 for the residuals (which likely means 12 participants).
+# p-value: 0.5739 — this is not statistically significant at any common threshold (e.g., 0.05).
 
-data.positioning.matched.accuracy_avg.long <- data.positioning.matched.accuracy_avg.wide %>%
-  pivot_longer(cols = c(rotatingGlobe, nonRotatingGlobe), 
-               names_to = "Condition", 
-               values_to = "Accuracy")
+# An ART ANOVA revealed no significant effect of position condition (rotating vs non-rotating) on match accuracy, F(1, 11) = 0.34, p = .574.
 
-ggplot(data.positioning.matched.accuracy_avg.long, aes(x = Condition, y = Accuracy, group = UserID)) +
+ggplot(data.positioning.matched.accuracy_avg.long, aes(x = positionCondition, y = mean_accuracy, group = UserID)) +
   geom_line(aes(color = as.factor(UserID))) +
   geom_point(size = 3) +
   labs(title = "Paired Accuracy: Moving vs Non-Moving Globe",
@@ -273,7 +270,7 @@ ggplot(data.positioning.matched.accuracy_avg.long, aes(x = Condition, y = Accura
        y = "Match Accuracy") +
   theme_minimal()
 
-ggplot(data.positioning.matched.accuracy_avg.long, aes(x = Condition, y = Accuracy)) +
+ggplot(data.positioning.matched.accuracy_avg.long, aes(x = positionCondition, y = mean_accuracy)) +
   geom_boxplot(outlier.shape = NA, fill = "lightblue") +
   geom_jitter(width = 0.1, size = 2, alpha = 0.7) +
   labs(title = "Accuracy by Globe Movement Condition",
@@ -291,7 +288,7 @@ data.positioning.taskCompletion_avg <- data.positioning %>%
 
 shapiro.test(data.positioning.taskCompletion_avg$completion_time)
 
-data.positioning.taskCompletion_avg.wide <- data.positioning %>%
+data.positioning.taskCompletion_avg.long <- data.positioning %>%
   group_by(UserID, positionCondition, TaskID) %>%
   summarise(
     completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
@@ -301,22 +298,33 @@ data.positioning.taskCompletion_avg.wide <- data.positioning %>%
   summarise(
     avg_completion_time = mean(completion_time),
     .groups = "drop"
-  ) %>%
-  pivot_wider(names_from = positionCondition, values_from = avg_completion_time)
+  ) 
+  # %>%
+  # pivot_wider(names_from = positionCondition, values_from = avg_completion_time)
 
-wilcox.test(
-  data.positioning.taskCompletion_avg.wide$rotatingGlobe,
-  data.positioning.taskCompletion_avg.wide$nonRotatingGlobe,
-  paired = TRUE,
-  alternative = "two.sided"
-)
+# wilcox.test(
+#   data.positioning.taskCompletion_avg.wide$rotatingGlobe,
+#   data.positioning.taskCompletion_avg.wide$nonRotatingGlobe,
+#   paired = TRUE,
+#   alternative = "two.sided"
+# )
 
-data.positioning.taskCompletion_avg.long <- data.positioning.taskCompletion_avg.wide %>%
-  pivot_longer(cols = c(rotatingGlobe, nonRotatingGlobe),
-               names_to = "Condition",
-               values_to = "completion_time")
+data.positioning.taskCompletion_avg.art <- art(avg_completion_time ~ positionCondition + (1|UserID), data = data.positioning.taskCompletion_avg.long)
 
-ggplot(data.positioning.taskCompletion_avg.long, aes(x = Condition, y = completion_time, group = UserID)) +
+anova(data.positioning.taskCompletion_avg.art)
+
+# The test statistic is F(1, 11) = 0.264, with a p-value of 0.618.
+# Since p > 0.05, the result is not statistically significant.
+# This means that there is no evidence of a significant effect of positionCondition on avg_completion_time.
+# 
+# An aligned rank transform ANOVA showed that position condition did not significantly affect average task completion time, F(1, 11) = 0.26, p = .618.
+
+# data.positioning.taskCompletion_avg.long <- data.positioning.taskCompletion_avg.wide %>%
+#   pivot_longer(cols = c(rotatingGlobe, nonRotatingGlobe),
+#                names_to = "Condition",
+#                values_to = "completion_time")
+
+ggplot(data.positioning.taskCompletion_avg.long, aes(x = positionCondition, y = avg_completion_time, group = UserID)) +
   geom_line(aes(color = as.factor(UserID)), linewidth = 1, alpha = 0.6) +
   geom_point(size = 3) +
   labs(
@@ -327,7 +335,7 @@ ggplot(data.positioning.taskCompletion_avg.long, aes(x = Condition, y = completi
   ) +
   theme_minimal()
 
-ggplot(data.positioning.taskCompletion_avg.long, aes(x = Condition, y = completion_time)) +
+ggplot(data.positioning.taskCompletion_avg.long, aes(x = positionCondition, y = avg_completion_time)) +
   geom_boxplot(outlier.shape = NA, fill = "lightblue") +
   geom_jitter(width = 0.1, size = 2, alpha = 0.7) +
   labs(title = "Accuracy by Globe Movement Condition",
@@ -522,27 +530,21 @@ plot(density(data.rotating.matched$match_accuracy_result),
 # So, we cannot use one way ANOVA, instead, we use Wilcoxon signed-rank test
 
 #### Statistical tests 
-data.rotating.matched.accuracy_avg.wide <- data.rotating.matched %>%
+data.rotating.matched.accuracy_avg.long <- data.rotating.matched %>%
   group_by(UserID, rotationCondition) %>%
-  summarise(mean_accuracy = mean(match_accuracy_result, na.rm = TRUE), .groups = 'drop') %>%
-  pivot_wider(names_from = rotationCondition, values_from = mean_accuracy)
+  summarise(mean_accuracy = mean(match_accuracy_result, na.rm = TRUE), .groups = 'drop') 
 
-wilcox.test(data.rotating.matched.accuracy_avg.wide$oneHanded, data.rotating.matched.accuracy_avg.wide$twoHanded, paired = TRUE)
+data.rotating.matched.art <- art(mean_accuracy ~ rotationCondition + (1|UserID), data = data.rotating.matched.accuracy_avg.long)
 
-# Since p = 0.0771, and assuming a conventional significance level of 0.05:
-# I do not have strong evidence to reject the null hypothesis.
-# I would conclude that there is no statistically significant difference in accuracy between oneHanded and twoHanded conditions.
-# However, the p-value is relatively close to 0.05, which might suggest a trend toward significance. This could mean:
-# With a slightly larger sample size or reduced variability, the result might become significant.
-# It’s worth reporting as a non-significant trend (e.g., p = .077, “approaching significance”).
-# This Wilcoxon signed-rank test showed that the difference in mean accuracy between the oneHanded and twoHanded conditions was not statistically significant, V = 16, p = .077.
+anova(data.rotating.matched.art)
 
-data.rotating.matched.accuracy_avg.long <- data.rotating.matched.accuracy_avg.wide %>%
-  pivot_longer(cols = c(oneHanded, twoHanded), 
-               names_to = "Condition", 
-               values_to = "Accuracy")
+#	Because p < .05, the result is considered statistically significant.
+# Therefore, we reject the null hypothesis and conclude that rotation affects accuracy.
 
-ggplot(data.rotating.matched.accuracy_avg.long, aes(x = Condition, y = Accuracy, group = UserID)) +
+# An ART ANOVA revealed a significant main effect of rotation condition on mean accuracy, F(1, 11) = 6.22, p = .030, indicating that the presence of globe rotation influenced the participants’ accuracy during the task.
+
+
+ggplot(data.rotating.matched.accuracy_avg.long, aes(x = rotationCondition, y = mean_accuracy, group = UserID)) +
   geom_line(aes(color = as.factor(UserID))) +
   geom_point(size = 3) +
   labs(title = "Paired Accuracy: Moving vs Non-Moving Globe",
@@ -550,7 +552,7 @@ ggplot(data.rotating.matched.accuracy_avg.long, aes(x = Condition, y = Accuracy,
        y = "Match Accuracy") +
   theme_minimal()
 
-ggplot(data.rotating.matched.accuracy_avg.long, aes(x = Condition, y = Accuracy)) +
+ggplot(data.rotating.matched.accuracy_avg.long, aes(x = rotationCondition, y = mean_accuracy)) +
   geom_boxplot(outlier.shape = NA, fill = "lightblue") +
   geom_jitter(width = 0.1, size = 2, alpha = 0.7) +
   labs(title = "Accuracy by Globe Movement Condition",
@@ -568,7 +570,7 @@ data.rotating.taskCompletion_avg <- data.rotating %>%
 
 shapiro.test(data.rotating.taskCompletion_avg$completion_time)
 
-data.rotating.taskCompletion_avg.wide <- data.rotating %>%
+data.rotating.taskCompletion_avg.long <- data.rotating %>%
   group_by(UserID, rotationCondition, TaskID) %>%
   summarise(
     completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
@@ -578,22 +580,19 @@ data.rotating.taskCompletion_avg.wide <- data.rotating %>%
   summarise(
     avg_completion_time = mean(completion_time),
     .groups = "drop"
-  ) %>%
-  pivot_wider(names_from = rotationCondition, values_from = avg_completion_time)
+  )
 
-wilcox.test(
-  data.rotating.taskCompletion_avg.wide$oneHanded,
-  data.rotating.taskCompletion_avg.wide$twoHanded,
-  paired = TRUE,
-  alternative = "two.sided"
-)
+data.rotating.taskCompletion_avg.art <- art(avg_completion_time ~ rotationCondition + (1|UserID), data = data.rotating.taskCompletion_avg.long)
 
-data.rotating.taskCompletion_avg.long <- data.rotating.taskCompletion_avg.wide %>%
-  pivot_longer(cols = c(oneHanded, twoHanded),
-               names_to = "Condition",
-               values_to = "completion_time")
+anova(data.rotating.taskCompletion_avg.art)
 
-ggplot(data.rotating.taskCompletion_avg.long, aes(x = Condition, y = completion_time, group = UserID)) +
+# F(1, 11) = 6.45, p = 0.027
+# Since the p-value is less than 0.05, the result is statistically significant.
+# This means that rotationCondition has a significant effect on avg_completion_time.
+# 
+# An aligned rank transform ANOVA revealed a significant effect of rotation condition on task completion time, F(1, 11) = 6.45, p = .027.
+
+ggplot(data.rotating.taskCompletion_avg.long, aes(x = rotationCondition, y = avg_completion_time, group = UserID)) +
   geom_line(aes(color = as.factor(UserID)), linewidth = 1, alpha = 0.6) +
   geom_point(size = 3) +
   labs(
@@ -604,7 +603,7 @@ ggplot(data.rotating.taskCompletion_avg.long, aes(x = Condition, y = completion_
   ) +
   theme_minimal()
 
-ggplot(data.rotating.taskCompletion_avg.long, aes(x = Condition, y = completion_time)) +
+ggplot(data.rotating.taskCompletion_avg.long, aes(x = rotationCondition, y = avg_completion_time)) +
   geom_boxplot(outlier.shape = NA, fill = "lightblue") +
   geom_jitter(width = 0.1, size = 2, alpha = 0.7) +
   labs(title = "Accuracy by Globe Movement Condition",
@@ -797,25 +796,22 @@ plot(density(data.scale.matched$match_accuracy_result),
 # So, we cannot use one way ANOVA, instead, we use Wilcoxon signed-rank test
 
 #### Statistical tests 
-data.scale.matched.accuracy_avg.wide <- data.scale.matched %>%
+data.scale.matched.accuracy_avg.long <- data.scale.matched %>%
   group_by(UserID, scaleCondition) %>%
-  summarise(mean_accuracy = mean(match_accuracy_result, na.rm = TRUE), .groups = 'drop') %>%
-  pivot_wider(names_from = scaleCondition, values_from = mean_accuracy)
+  summarise(mean_accuracy = mean(match_accuracy_result, na.rm = TRUE), .groups = 'drop')
+  # %>%
+  # pivot_wider(names_from = scaleCondition, values_from = mean_accuracy)
 
-wilcox.test(data.scale.matched.accuracy_avg.wide$movingGlobe, data.scale.matched.accuracy_avg.wide$nonMovingGlobe, paired = TRUE)
+data.scale.matched.art <- art(mean_accuracy ~ scaleCondition + (1|UserID), data = data.scale.matched.accuracy_avg.long)
 
-# Since p = 0.6772 > 0.05, we fail to reject the null hypothesis.
-# This suggests that there is no statistically significant difference in accuracy between the movingGlobe and nonMovingGlobe conditions.
-# The relatively high p-value implies any difference observed is likely due to chance.
+anova(data.scale.matched.art)
 
-# This Wilcoxon signed-rank test indicated no significant difference in match accuracy between the movingGlobe and nonMovingGlobe conditions, V = 33, p = .68.
+# Because p > .05, we fail to reject the null hypothesis.
+# There is no evidence that changing the scale condition affects how accurately participants performed.
 
-data.scale.matched.accuracy_avg.long <- data.scale.matched.accuracy_avg.wide %>%
-  pivot_longer(cols = c(movingGlobe, nonMovingGlobe), 
-               names_to = "Condition", 
-               values_to = "Accuracy")
+# An ART ANOVA showed no significant effect of scale condition on mean accuracy, F(1, 11) = 0.44, p = .522, indicating that changing the scale of the globe did not impact participants’ accuracy.
 
-ggplot(data.scale.matched.accuracy_avg.long, aes(x = Condition, y = Accuracy, group = UserID)) +
+ggplot(data.scale.matched.accuracy_avg.long, aes(x = scaleCondition, y = mean_accuracy, group = UserID)) +
   geom_line(aes(color = as.factor(UserID))) +
   geom_point(size = 3) +
   labs(title = "Paired Accuracy: Moving vs Non-Moving Globe",
@@ -823,7 +819,7 @@ ggplot(data.scale.matched.accuracy_avg.long, aes(x = Condition, y = Accuracy, gr
        y = "Match Accuracy") +
   theme_minimal()
 
-ggplot(data.scale.matched.accuracy_avg.long, aes(x = Condition, y = Accuracy)) +
+ggplot(data.scale.matched.accuracy_avg.long, aes(x = scaleCondition, y = mean_accuracy)) +
   geom_boxplot(outlier.shape = NA, fill = "lightblue") +
   geom_jitter(width = 0.1, size = 2, alpha = 0.7) +
   labs(title = "Accuracy by Globe Movement Condition",
@@ -841,7 +837,7 @@ data.scale.taskCompletion_avg <- data.scale %>%
 
 shapiro.test(data.scale.taskCompletion_avg$completion_time)
 
-data.scale.taskCompletion_avg.wide <- data.scale %>%
+data.scale.taskCompletion_avg.long <- data.scale %>%
   group_by(UserID, scaleCondition, TaskID) %>%
   summarise(
     completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
@@ -851,22 +847,30 @@ data.scale.taskCompletion_avg.wide <- data.scale %>%
   summarise(
     avg_completion_time = mean(completion_time),
     .groups = "drop"
-  ) %>%
-  pivot_wider(names_from = scaleCondition, values_from = avg_completion_time)
+  ) 
+  # %>%
+  # pivot_wider(names_from = scaleCondition, values_from = avg_completion_time)
 
-wilcox.test(
-  data.scale.taskCompletion_avg.wide$movingGlobe,
-  data.scale.taskCompletion_avg.wide$nonMovingGlobe,
-  paired = TRUE,
-  alternative = "two.sided"
-)
+data.scale.taskCompletion.art <- art(avg_completion_time ~ scaleCondition + (1|UserID), data = data.scale.taskCompletion_avg.long)
 
-data.scale.taskCompletion_avg.long <- data.scale.taskCompletion_avg.wide %>%
-  pivot_longer(cols = c(movingGlobe, nonMovingGlobe),
-               names_to = "Condition",
-               values_to = "completion_time")
+anova(data.scale.matched.art)
 
-ggplot(data.scale.taskCompletion_avg.long, aes(x = Condition, y = completion_time, group = UserID)) +
+# An aligned rank transform (ART) ANOVA revealed no significant effect of scale condition on mean accuracy, F(1, 11) = 0.44, p = .522.
+# There was no significant effect of scale condition on mean accuracy, F(1, 11) = 0.44, p = .522.
+
+# wilcox.test(
+#   data.scale.taskCompletion_avg.wide$movingGlobe,
+#   data.scale.taskCompletion_avg.wide$nonMovingGlobe,
+#   paired = TRUE,
+#   alternative = "two.sided"
+# )
+
+# data.scale.taskCompletion_avg.long <- data.scale.taskCompletion_avg.wide %>%
+#   pivot_longer(cols = c(movingGlobe, nonMovingGlobe),
+#                names_to = "Condition",
+#                values_to = "completion_time")
+
+ggplot(data.scale.taskCompletion_avg.long, aes(x = scaleCondition, y = avg_completion_time, group = UserID)) +
   geom_line(aes(color = as.factor(UserID)), linewidth = 1, alpha = 0.6) +
   geom_point(size = 3) +
   labs(
@@ -877,7 +881,7 @@ ggplot(data.scale.taskCompletion_avg.long, aes(x = Condition, y = completion_tim
   ) +
   theme_minimal()
 
-ggplot(data.scale.taskCompletion_avg.long, aes(x = Condition, y = completion_time)) +
+ggplot(data.scale.taskCompletion_avg.long, aes(x = scaleCondition, y = avg_completion_time)) +
   geom_boxplot(outlier.shape = NA, fill = "lightblue") +
   geom_jitter(width = 0.1, size = 2, alpha = 0.7) +
   labs(title = "Accuracy by Globe Movement Condition",
