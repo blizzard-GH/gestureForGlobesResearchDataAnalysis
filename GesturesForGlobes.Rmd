@@ -20,6 +20,7 @@ library(ggplot2)
 library(lubridate)
 library(scales)
 library(ARTool)
+library(knitr)
 
 data <- read_csv("study_tasks.csv")
 demographic <- read_csv("final_introductory.csv")
@@ -344,7 +345,7 @@ ggplot(data.positioning.taskCompletion_avg.long, aes(x = positionCondition, y = 
   theme_minimal()
 
 ### Subjective Measures
-#### Physical Exertion
+#### Physical and Mental Exertion
 
 # Spearman’s rank correlation is a non-parametric test.
 # It does not assume normal distribution of the variables.
@@ -372,8 +373,18 @@ data.positioning.matched.NRG <- data.positioning.matched %>%
 cor.test(data.positioning.matched.NRG$BORG_NRG, 
          data.positioning.matched.NRG$match_accuracy_result, method = "spearman")
 
+ggplot(data.positioning.matched.NRG, aes(x = BORG_NRG, y = match_accuracy_result)) +
+  geom_point(color = "steelblue", size = 2, alpha = 0.7) +
+  geom_smooth(method = "loess", color = "darkred", se = TRUE) +
+  labs(
+    title = "Correlation between Physical Exertion and Accuracy (Non-rotating Globe)",
+    x = "Physical Exertion (BORG_NRG)",
+    y = "Match Accuracy Result"
+  ) +
+  theme_minimal()
+
 data.positioning.taskCompletion_avg.RG <- data.positioning %>%
-  group_by(UserID, positionCondition, BORG_RG, TaskID) %>%
+  group_by(UserID, positionCondition, PAAS_RG, BORG_RG, TaskID) %>%
   summarise(
     completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
     .groups = "drop"
@@ -384,7 +395,7 @@ cor.test(data.positioning.taskCompletion_avg.RG$BORG_RG,
          data.positioning.taskCompletion_avg.RG$completion_time, method = "spearman")
 
 data.positioning.taskCompletion_avg.NRG <- data.positioning %>%
-  group_by(UserID, positionCondition, BORG_NRG, TaskID) %>%
+  group_by(UserID, positionCondition, PAAS_NRG, BORG_NRG, TaskID) %>%
   summarise(
     completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
     .groups = "drop"
@@ -394,20 +405,65 @@ data.positioning.taskCompletion_avg.NRG <- data.positioning %>%
 cor.test(data.positioning.taskCompletion_avg.NRG$BORG_NRG, 
          data.positioning.taskCompletion_avg.NRG$completion_time, method = "spearman")
 
+# PAAS vs Accuracy
+data.positioning.matched.RG$condition <- "RG"
+data.positioning.matched.NRG$condition <- "NRG"
+
+data.positioning.matched.PAAS_combined <- bind_rows(
+  data.positioning.matched.RG %>% rename(PAAS = PAAS_RG),
+  data.positioning.matched.NRG %>% rename(PAAS = PAAS_NRG)
+)
+
+ggplot(data.positioning.matched.PAAS_combined, aes(x = PAAS, y = match_accuracy_result, color = condition)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = "Mental Exertion vs Match Accuracy in Positioning",
+    x = "PAAS Scale",
+    y = "Match Accuracy",
+    color = "Condition"
+  ) +
+  scale_color_manual(values = c("RG" = "blue", "NRG" = "red")) +
+  theme_minimal()
+
+# PAAS vs Completion Time
+
+data.positioning.taskCompletion_avg.RG$condition <- "RG"
+data.positioning.taskCompletion_avg.NRG$condition <- "NRG"
+
+data.positioning.taskCompletion_avg.PAAS_combined <- bind_rows(
+  data.positioning.taskCompletion_avg.RG %>% 
+    rename(PAAS = PAAS_RG),
+  data.positioning.taskCompletion_avg.NRG %>% 
+    rename(PAAS = PAAS_NRG)
+)
+
+ggplot(data.positioning.taskCompletion_avg.PAAS_combined, aes(x = PAAS, y = completion_time, color = condition)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = "Mental Exertion vs Completion Time in Positioning",
+    x = "PASS Scale",
+    y = "Completion Time",
+    color = "Condition"
+  ) +
+  scale_color_manual(values = c("RG" = "blue", "NRG" = "red")) +
+  theme_minimal()
+
 # BORG vs Accuracy
 data.positioning.matched.RG$condition <- "RG"
 data.positioning.matched.NRG$condition <- "NRG"
 
-data.positioning.matched.combined <- bind_rows(
+data.positioning.matched.BORG_combined <- bind_rows(
   data.positioning.matched.RG %>% rename(BORG = BORG_RG),
   data.positioning.matched.NRG %>% rename(BORG = BORG_NRG)
 )
 
-ggplot(data.positioning.matched.combined, aes(x = BORG, y = match_accuracy_result, color = condition)) +
+ggplot(data.positioning.matched.BORG_combined, aes(x = BORG, y = match_accuracy_result, color = condition)) +
   geom_point(alpha = 0.7) +
   geom_smooth(method = "lm", se = TRUE) +
   labs(
-    title = "Physical Exertion vs Match Accuracy",
+    title = "Physical Exertion vs Match Accuracy in Positioning",
     x = "BORG Scale",
     y = "Match Accuracy",
     color = "Condition"
@@ -420,20 +476,20 @@ ggplot(data.positioning.matched.combined, aes(x = BORG, y = match_accuracy_resul
 data.positioning.taskCompletion_avg.RG$condition <- "RG"
 data.positioning.taskCompletion_avg.NRG$condition <- "NRG"
 
-data.positioning.taskCompletion_avg.combined <- bind_rows(
+data.positioning.taskCompletion_avg.BORG_combined <- bind_rows(
   data.positioning.taskCompletion_avg.RG %>% 
     rename(BORG = BORG_RG),
   data.positioning.taskCompletion_avg.NRG %>% 
     rename(BORG = BORG_NRG)
 )
 
-ggplot(data.positioning.taskCompletion_avg.combined, aes(x = BORG, y = completion_time, color = condition)) +
+ggplot(data.positioning.taskCompletion_avg.BORG_combined, aes(x = BORG, y = completion_time, color = condition)) +
   geom_point(alpha = 0.7) +
   geom_smooth(method = "lm", se = TRUE) +
   labs(
-    title = "Physical Exertion vs Completion Time",
+    title = "Physical Exertion vs Completion Time  in Positioning",
     x = "BORG Scale",
-    y = "Completion Time (min)",
+    y = "Completion Time",
     color = "Condition"
   ) +
   scale_color_manual(values = c("RG" = "blue", "NRG" = "red")) +
@@ -458,6 +514,25 @@ data.positioning %>%
   ) +
   theme_void()
 #### Comments
+
+data.positioning.preference.summary <- data.positioning %>%
+  mutate(
+    behaviour_preference = case_when(
+      behaviour_preference == "staticOrientation" ~ "Static Orientation",
+      behaviour_preference == "adaptiveOrientation" ~ "Adaptive Orientation",
+      behaviour_preference == "noPreference" ~ "No Preference",
+      TRUE ~ behaviour_preference
+    )
+  ) %>%
+  group_by(UserID) %>%
+  summarise(
+    behaviour_preference = first(behaviour_preference),
+    behaviour_feedback = first(behaviour_feedback),
+    .groups = "drop"
+  )
+
+kable(data.positioning.preference.summary, caption = "User Feedback Summary - Positioning")
+
 ### Summary
 ```
 
@@ -611,7 +686,7 @@ ggplot(data.rotating.taskCompletion_avg.long, aes(x = rotationCondition, y = avg
        y = "Match Accuracy") +
   theme_minimal()
 ### Subjective Measures
-#### Physical Exertion
+#### Physical and Mental Exertion
 # Spearman’s rank correlation is a non-parametric test.
 # It does not assume normal distribution of the variables.
 # It works on ranks of the data, not the raw values — so it’s robust against skewed or non-normal distributions.
@@ -626,8 +701,8 @@ ggplot(data.rotating.matched.OH, aes(x = BORG_OH, y = match_accuracy_result)) +
   geom_point(color = "steelblue", size = 2, alpha = 0.7) +
   geom_smooth(method = "loess", color = "darkred", se = TRUE) +
   labs(
-    title = "Correlation between Physical Exertion and Accuracy (Rotating Globe)",
-    x = "Physical Exertion (BOOH_OH)",
+    title = "Correlation between Physical Exertion and Accuracy (One Handed)",
+    x = "Physical Exertion (BORG_OH)",
     y = "Match Accuracy Result"
   ) +
   theme_minimal()
@@ -638,8 +713,18 @@ data.rotating.matched.TH <- data.rotating.matched %>%
 cor.test(data.rotating.matched.TH$BORG_TH, 
          data.rotating.matched.TH$match_accuracy_result, method = "spearman")
 
+ggplot(data.rotating.matched.TH, aes(x = BORG_TH, y = match_accuracy_result)) +
+  geom_point(color = "steelblue", size = 2, alpha = 0.7) +
+  geom_smooth(method = "loess", color = "darkred", se = TRUE) +
+  labs(
+    title = "Correlation between Physical Exertion and Accuracy (Two Handed)",
+    x = "Physical Exertion (BORG_TH)",
+    y = "Match Accuracy Result"
+  ) +
+  theme_minimal()
+
 data.rotating.taskCompletion_avg.OH <- data.rotating %>%
-  group_by(UserID, rotationCondition, BORG_OH, TaskID) %>%
+  group_by(UserID, rotationCondition, PAAS_OH, BORG_OH, TaskID) %>%
   summarise(
     completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
     .groups = "drop"
@@ -650,7 +735,7 @@ cor.test(data.rotating.taskCompletion_avg.OH$BORG_OH,
          data.rotating.taskCompletion_avg.OH$completion_time, method = "spearman")
 
 data.rotating.taskCompletion_avg.TH <- data.rotating %>%
-  group_by(UserID, rotationCondition, BORG_TH, TaskID) %>%
+  group_by(UserID, rotationCondition, PAAS_TH, BORG_TH, TaskID) %>%
   summarise(
     completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
     .groups = "drop"
@@ -660,21 +745,66 @@ data.rotating.taskCompletion_avg.TH <- data.rotating %>%
 cor.test(data.rotating.taskCompletion_avg.TH$BORG_TH, 
          data.rotating.taskCompletion_avg.TH$completion_time, method = "spearman")
 
+# PAAS vs Accuracy
+data.rotating.matched.OH$condition <- "OH"
+data.rotating.matched.TH$condition <- "TH"
+
+data.rotating.matched.PAAS_combined <- bind_rows(
+  data.rotating.matched.OH %>% rename(PAAS = PAAS_OH),
+  data.rotating.matched.TH %>% rename(PAAS = PAAS_TH)
+)
+
+ggplot(data.rotating.matched.PAAS_combined, aes(x = PAAS, y = match_accuracy_result, color = condition)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = "Mental Exertion vs Match Accuracy in Rotating",
+    x = "PAAS Scale",
+    y = "Match Accuracy",
+    color = "Condition"
+  ) +
+  scale_color_manual(values = c("OH" = "blue", "TH" = "red")) +
+  theme_minimal()
+
+# PAAS vs Completion Time
+
+data.rotating.taskCompletion_avg.OH$condition <- "OH"
+data.rotating.taskCompletion_avg.TH$condition <- "TH"
+
+data.rotating.taskCompletion_avg.PAAS_combined <- bind_rows(
+  data.rotating.taskCompletion_avg.OH %>% 
+    rename(PAAS = PAAS_OH),
+  data.rotating.taskCompletion_avg.TH %>% 
+    rename(PAAS = PAAS_TH)
+)
+
+ggplot(data.rotating.taskCompletion_avg.PAAS_combined, aes(x = PAAS, y = completion_time, color = condition)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = "Mental Exertion vs Completion Time in Rotating",
+    x = "PASS Scale",
+    y = "Completion Time",
+    color = "Condition"
+  ) +
+  scale_color_manual(values = c("RG" = "blue", "NRG" = "red")) +
+  theme_minimal()
+
 # BORG vs Accuracy
 
 data.rotating.matched.OH$condition <- "OH"
 data.rotating.matched.TH$condition <- "TH"
 
-data.rotating.matched.combined <- bind_rows(
+data.rotating.matched.BORG_combined <- bind_rows(
   data.rotating.matched.OH %>% rename(BORG = BORG_OH),
   data.rotating.matched.TH %>% rename(BORG = BORG_TH)
 )
 
-ggplot(data.rotating.matched.combined, aes(x = BORG, y = match_accuracy_result, color = condition)) +
+ggplot(data.rotating.matched.BORG_combined, aes(x = BORG, y = match_accuracy_result, color = condition)) +
   geom_point(alpha = 0.7) +
   geom_smooth(method = "lm", se = TRUE) +
   labs(
-    title = "Physical Exertion vs Match Accuracy",
+    title = "Physical Exertion vs Match Accuracy in Rotating",
     x = "BORG Scale",
     y = "Match Accuracy",
     color = "Condition"
@@ -687,18 +817,18 @@ ggplot(data.rotating.matched.combined, aes(x = BORG, y = match_accuracy_result, 
 data.rotating.taskCompletion_avg.OH$condition <- "OH"
 data.rotating.taskCompletion_avg.TH$condition <- "TH"
 
-data.rotating.taskCompletion_avg.combined <- bind_rows(
+data.rotating.taskCompletion_avg.BORG_combined <- bind_rows(
   data.rotating.taskCompletion_avg.OH %>% 
     rename(BORG = BORG_OH),
   data.rotating.taskCompletion_avg.TH %>% 
     rename(BORG = BORG_TH)
 )
 
-ggplot(data.rotating.taskCompletion_avg.combined, aes(x = BORG, y = completion_time, color = condition)) +
+ggplot(data.rotating.taskCompletion_avg.BORG_combined, aes(x = BORG, y = completion_time, color = condition)) +
   geom_point(alpha = 0.7) +
   geom_smooth(method = "lm", se = TRUE) +
   labs(
-    title = "Physical Exertion vs Completion Time",
+    title = "Physical Exertion vs Completion Time in Rotating",
     x = "BORG Scale",
     y = "Completion Time (min)",
     color = "Condition"
@@ -724,6 +854,23 @@ data.rotating %>%
   ) +
   theme_void()
 #### Comments
+data.rotating.preference.summary <- data.rotating %>%
+  mutate(
+    behaviour_preference = case_when(
+      behaviour_preference == "oneHandedPreference" ~ "One Handed Gesture",
+      behaviour_preference == "twoHandedPreference" ~ "Two Handed Gesture",
+      behaviour_preference == "noPreference" ~ "No Preference",
+      TRUE ~ behaviour_preference
+    )
+  ) %>%
+  group_by(UserID) %>%
+  summarise(
+    behaviour_preference = first(behaviour_preference),
+    behaviour_feedback = first(behaviour_feedback),
+    .groups = "drop"
+  )
+
+kable(data.rotating.preference.summary, caption = "User Feedback Summary - Rotating")
 ### Summary
 ```
 
@@ -894,70 +1041,115 @@ ggplot(data.scale.taskCompletion_avg.long, aes(x = scaleCondition, y = avg_compl
 # It does not assume normal distribution of the variables.
 # It works on ranks of the data, not the raw values — so it’s robust against skewed or non-normal distributions.
 
-data.positioning.matched.RG <- data.positioning.matched %>% 
-  filter(positionCondition == "rotatingGlobe")
+data.scale.matched.MG <- data.scale.matched %>% 
+  filter(scaleCondition == "movingGlobe")
 
-cor.test(data.positioning.matched.RG$BORG_RG, 
-         data.positioning.matched.RG$match_accuracy_result, method = "spearman")
+cor.test(data.scale.matched.MG$BORG_MG, 
+         data.scale.matched.MG$match_accuracy_result, method = "spearman")
 
-ggplot(data.positioning.matched.RG, aes(x = BORG_RG, y = match_accuracy_result)) +
+ggplot(data.scale.matched.MG, aes(x = BORG_MG, y = match_accuracy_result)) +
   geom_point(color = "steelblue", size = 2, alpha = 0.7) +
   geom_smooth(method = "loess", color = "darkred", se = TRUE) +
   labs(
-    title = "Correlation between Physical Exertion and Accuracy (Rotating Globe)",
-    x = "Physical Exertion (BORG_RG)",
+    title = "Correlation between Physical Exertion and Accuracy (Moving Globe)",
+    x = "Physical Exertion (BORG_MG)",
     y = "Match Accuracy Result"
   ) +
   theme_minimal()
 
-data.positioning.matched.NRG <- data.positioning.matched %>% 
-  filter(positionCondition == "nonRotatingGlobe")
+data.scale.matched.NMG <- data.scale.matched %>% 
+  filter(scaleCondition == "nonMovingGlobe")
 
-cor.test(data.positioning.matched.NRG$BORG_NRG, 
-         data.positioning.matched.NRG$match_accuracy_result, method = "spearman")
+cor.test(data.scale.matched.NMG$BORG_NMG, 
+         data.scale.matched.NMG$match_accuracy_result, method = "spearman")
 
-data.positioning.taskCompletion_avg.RG <- data.positioning %>%
-  group_by(UserID, positionCondition, BORG_RG, TaskID) %>%
+ggplot(data.scale.matched.NMG, aes(x = BORG_NMG, y = match_accuracy_result)) +
+  geom_point(color = "steelblue", size = 2, alpha = 0.7) +
+  geom_smooth(method = "loess", color = "darkred", se = TRUE) +
+  labs(
+    title = "Correlation between Physical Exertion and Accuracy (Non-moving Globe)",
+    x = "Physical Exertion (BORG_NMG)",
+    y = "Match Accuracy Result"
+  ) +
+  theme_minimal()
+
+data.scale.taskCompletion_avg.MG <- data.scale %>%
+  group_by(UserID, scaleCondition, PAAS_MG, BORG_MG, TaskID) %>%
   summarise(
     completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
     .groups = "drop"
   ) %>%
-  filter(positionCondition == "rotatingGlobe")
+  filter(scaleCondition == "movingGlobe")
 
-cor.test(data.positioning.taskCompletion_avg.RG$BORG_RG, 
-         data.positioning.taskCompletion_avg.RG$completion_time, method = "spearman")
+cor.test(data.scale.taskCompletion_avg.MG$BORG_MG, 
+         data.scale.taskCompletion_avg.MG$completion_time, method = "spearman")
 
-data.positioning.taskCompletion_avg.NRG <- data.positioning %>%
-  group_by(UserID, positionCondition, BORG_NRG, TaskID) %>%
+data.scale.taskCompletion_avg.NMG <- data.scale %>%
+  group_by(UserID, scaleCondition, PAAS_NMG, BORG_NMG, TaskID) %>%
   summarise(
     completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
     .groups = "drop"
   ) %>%
-  filter(positionCondition == "nonRotatingGlobe")
+  filter(scaleCondition == "nonMovingGlobe")
 
-cor.test(data.positioning.taskCompletion_avg.NRG$BORG_NRG, 
-         data.positioning.taskCompletion_avg.NRG$completion_time, method = "spearman")
+cor.test(data.scale.taskCompletion_avg.NMG$BORG_NMG, 
+         data.scale.taskCompletion_avg.NMG$completion_time, method = "spearman")
 
-# BORG vs Accuracy
-ggplot(data.positioning.matched.RG, aes(x = BORG_RG, y = match_accuracy_result)) +
-  geom_point() +
-  geom_smooth(method = "lm", se = TRUE) +
-  labs(title = "Physical Exertion vs Match Accuracy", x = "BORG Scale (RG)", y = "Match Accuracy")
+# PAAS vs Accuracy
+data.scale.matched.MG$condition <- "MG"
+data.scale.matched.NMG$condition <- "NMG"
 
-ggplot(data.positioning.matched.NRG, aes(x = BORG_NRG, y = match_accuracy_result)) +
-  geom_point() +
-  geom_smooth(method = "lm", se = TRUE) +
-  labs(title = "Physical Exertion vs Match Accuracy", x = "BORG Scale (RG)", y = "Match Accuracy")
-
-data.positioning.matched.RG$condition <- "RG"
-data.positioning.matched.NRG$condition <- "NRG"
-
-data.positioning.matched.combined <- bind_rows(
-  data.positioning.matched.RG %>% rename(BORG = BORG_RG),
-  data.positioning.matched.NRG %>% rename(BORG = BORG_NRG)
+data.scale.matched.PAAS_combined <- bind_rows(
+  data.scale.matched.MG %>% rename(PAAS = PAAS_MG),
+  data.scale.matched.NMG %>% rename(PAAS = PAAS_NMG)
 )
 
-ggplot(data.positioning.matched.combined, aes(x = BORG, y = match_accuracy_result, color = condition)) +
+ggplot(data.scale.matched.PAAS_combined, aes(x = PAAS, y = match_accuracy_result, color = condition)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = "Mental Exertion vs Match Accuracy in scale",
+    x = "PAAS Scale",
+    y = "Match Accuracy",
+    color = "Condition"
+  ) +
+  scale_color_manual(values = c("MG" = "blue", "NMG" = "red")) +
+  theme_minimal()
+
+# PAAS vs Completion Time
+
+data.scale.taskCompletion_avg.MG$condition <- "MG"
+data.scale.taskCompletion_avg.NMG$condition <- "NMG"
+
+data.scale.taskCompletion_avg.PAAS_combined <- bind_rows(
+  data.scale.taskCompletion_avg.MG %>% 
+    rename(PAAS = PAAS_MG),
+  data.scale.taskCompletion_avg.NMG %>% 
+    rename(PAAS = PAAS_NMG)
+)
+
+ggplot(data.scale.taskCompletion_avg.PAAS_combined, aes(x = PAAS, y = completion_time, color = condition)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = "Mental Exertion vs Completion Time in scale",
+    x = "PASS Scale",
+    y = "Completion Time",
+    color = "Condition"
+  ) +
+  scale_color_manual(values = c("MG" = "blue", "NMG" = "red")) +
+  theme_minimal()
+
+# BORG vs Accuracy
+data.scale.matched.MG$condition <- "MG"
+data.scale.matched.NMG$condition <- "NMG"
+
+data.scale.matched.BORG_combined <- bind_rows(
+  data.scale.matched.MG %>% rename(BORG = BORG_MG),
+  data.scale.matched.NMG %>% rename(BORG = BORG_NMG)
+)
+
+ggplot(data.scale.matched.BORG_combined, aes(x = BORG, y = match_accuracy_result, color = condition)) +
   geom_point(alpha = 0.7) +
   geom_smooth(method = "lm", se = TRUE) +
   labs(
@@ -971,17 +1163,17 @@ ggplot(data.positioning.matched.combined, aes(x = BORG, y = match_accuracy_resul
 
 # BORG vs Completion Time
 
-data.positioning.taskCompletion_avg.RG$condition <- "RG"
-data.positioning.taskCompletion_avg.NRG$condition <- "NRG"
+data.scale.taskCompletion_avg.MG$condition <- "RG"
+data.scale.taskCompletion_avg.NMG$condition <- "NRG"
 
-data.positioning.taskCompletion_avg.combined <- bind_rows(
-  data.positioning.taskCompletion_avg.RG %>% 
-    rename(BORG = BORG_RG),
-  data.positioning.taskCompletion_avg.NRG %>% 
-    rename(BORG = BORG_NRG)
+data.scale.taskCompletion_avg.BORG_combined <- bind_rows(
+  data.scale.taskCompletion_avg.MG %>% 
+    rename(BORG = BORG_MG),
+  data.scale.taskCompletion_avg.NMG %>% 
+    rename(BORG = BORG_NMG)
 )
 
-ggplot(data.positioning.taskCompletion_avg.combined, aes(x = BORG, y = completion_time, color = condition)) +
+ggplot(data.scale.taskCompletion_avg.BORG_combined, aes(x = BORG, y = completion_time, color = condition)) +
   geom_point(alpha = 0.7) +
   geom_smooth(method = "lm", se = TRUE) +
   labs(
@@ -990,8 +1182,9 @@ ggplot(data.positioning.taskCompletion_avg.combined, aes(x = BORG, y = completio
     y = "Completion Time (min)",
     color = "Condition"
   ) +
-  scale_color_manual(values = c("RG" = "blue", "NRG" = "red")) +
+  scale_color_manual(values = c("MG" = "blue", "NMG" = "red")) +
   theme_minimal()
+
 #### Preference
 data.scale %>%
   select(UserID, behaviour_preference) %>%
@@ -1013,5 +1206,22 @@ data.scale %>%
   
 
 #### Comments
+data.scale.preference.summary <- data.scale %>%
+  mutate(
+    behaviour_preference = case_when(
+      behaviour_preference == "maintainDistance" ~ "Maintain Globe's Distance",
+      behaviour_preference == "maintainGlobe" ~ "Maintain Globe's Position",
+      behaviour_preference == "noPreference" ~ "No Preference",
+      TRUE ~ behaviour_preference
+    )
+  ) %>%
+  group_by(UserID) %>%
+  summarise(
+    behaviour_preference = first(behaviour_preference),
+    behaviour_feedback = first(behaviour_feedback),
+    .groups = "drop"
+  )
+
+kable(data.scale.preference.summary, caption = "User Feedback Summary - Scale")
 ### Summary
 ```
