@@ -1,0 +1,1013 @@
+---
+title: "Gestures for Positioning, Scaling, and Rotating Virtual Globes"
+author: "Faisal Agung Abdillah"
+date: "2025-05-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Gestures for Globes Research
+
+# Data and Libraries Load
+```{r}
+library(tidyverse)
+library(dplyr)
+library(car)
+library(ggplot2)
+library(lubridate)
+library(scales)
+
+data <- read_csv("study_tasks.csv")
+demographic <- read_csv("final_introductory.csv")
+positioning_NRG <- read_csv("final_positioning_NRG.csv")
+positioning_RG <- read_csv("final_positioning_RG.csv")
+positioning_preference <- read_csv("final_positioning_comparison.csv")
+rotation_OH <- read_csv("final_rotation_OH.csv")
+rotation_TH <- read_csv("final_rotation_TH.csv")
+rotation_preference <- read_csv("final_rotation_comparison.csv")
+scale_MG <- read_csv("final_scale_MG.csv")
+scale_NMG <- read_csv("final_scale_NMG.csv")
+scale_preference <- read_csv("final_scale_comparison.csv")
+combined_preference <- read_csv("final_outro_comparison.csv")
+
+summary(data)
+
+summary(demographic)
+
+summary(positioning_NRG)
+
+summary(positioning_RG)
+
+summary(positioning_preference)
+
+summary(rotation_OH)
+
+summary(rotation_TH)
+
+summary(rotation_preference)
+
+summary(scale_MG)
+
+summary(scale_NMG)
+
+summary(scale_preference)
+
+summary(combined_preference)
+```
+
+# Participants Demographic Information
+
+```{r Demographic}
+# Total number of participants
+length(unique(data$UserID))
+
+# Participants' gender distribution
+demographic.gender <-  demographic %>%
+  select(UserID, Gender) %>%
+  distinct() %>%
+  group_by(Gender) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = round(count / sum(count) * 100, 1), percentage = paste0(percentage, "%"))
+
+demographic.gender
+
+# Participants' gender distribution chart
+ggplot(demographic.gender, aes(x = "", y = count, fill = Gender)) +
+  geom_col(width = 1, color = "white") +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = percentage), position = position_stack(vjust = 0.5), size = 4) +
+  labs(title = "Distribution of Participants' Gender") +
+  theme_void()
+
+# Participants' academic level distribution
+demographic.academic_level <-  demographic %>%
+  select(UserID, Academic_level) %>%
+  distinct() %>%
+  group_by(Academic_level) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = round(count / sum(count) * 100, 1), graph_label = paste0(percentage, "%")) %>%
+  rename(`Academic levels` = Academic_level)
+
+demographic.academic_level
+
+# Participants' academic level distribution chart
+ggplot(demographic.academic_level, aes(x = "", y = count, fill = `Academic levels`)) +
+  geom_col(width = 1, color = "white") +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = graph_label), position = position_stack(vjust = 0.5), size = 4) +
+  labs(title = "Distribution of Participants' Academic Level") +
+  theme_void() 
+
+# Participants' previous AR/VR experience distribution
+demographic.ARVR_exp <-  demographic %>%
+  select(UserID, Exp_ARVR ) %>%
+  distinct() %>%
+  group_by(Exp_ARVR) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = round(count / sum(count) * 100, 1), 
+         label = paste0(percentage, "%"),
+         ShortLabel = fct_recode(Exp_ARVR,
+                          "No experience" = "I have no experience")
+) %>%
+  rename(`Previous AR/VR experience` = ShortLabel)
+
+demographic.ARVR_exp
+
+# Participants' previous AR/VR experience distribution chart
+ggplot(demographic.ARVR_exp, aes(x = "", y = count, fill = `Previous AR/VR experience`)) +
+  geom_col(width = 1, color = "white") +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = label), position = position_stack(vjust = 0.5), size = 4) +
+  labs(title = "Distribution of Participants Previous AR/VR Experience") +
+  theme_void() 
+
+# Participants' previous globe experience distribution
+demographic.globes_exp <- demographic %>%
+  select(UserID, Globe_usage_frequency) %>%
+  distinct() %>%
+  group_by(Globe_usage_frequency) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = round(count / sum(count) * 100, 1),
+         graph_label = paste0(percentage, "%")) %>%
+  rename(`Previous globes experience` = Globe_usage_frequency)
+
+demographic.globes_exp
+
+# Participants' previous globe experience distribution chart
+ggplot(demographic.globes_exp, aes(x = "", y = count, fill = `Previous globes experience`)) +
+  geom_col(width = 1, color = "white") +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = graph_label), position = position_stack(vjust = 0.5), size = 4) +
+  labs(title = "Distribution of Participants Previous AR/VR Experience") +
+  theme_void() 
+
+# Participants' previous Apple Vision Pro Experience distribution
+demographic.visionpro_exp <- demographic %>%
+  select(UserID, Have_used_VisionPro) %>%
+  distinct() %>%
+  group_by(Have_used_VisionPro) %>%
+  summarise(count = n()) %>%
+  mutate(
+    percentage = round(count / sum(count) * 100, 1),
+    graph_label = paste0(percentage, "%")
+  ) %>%
+  rename(`Have used Apple Vision Pro` = Have_used_VisionPro)
+  
+demographic.visionpro_exp
+  
+# Participants' previous Apple Vision Pro Experience distribution chart
+ggplot(demographic.visionpro_exp, aes(x = "", y = count, fill = `Have used Apple Vision Pro`)) +
+  geom_col(width = 1, color = "white") +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = graph_label), position = position_stack(vjust = 0.5), size = 4) +
+  labs(title = "Distribution of Participants Previous AR/VR Experience") +
+  theme_void()   
+
+```
+
+
+Notes:
+Use boxplot instead of bar chart
+Add technique column
+
+Structure it like this:
+
+## Study: Positioning
+### Positioning Data Preparation
+```{r Positioning Data Preparation}
+data.positioning <- data %>%
+  inner_join(demographic, by = "UserID") %>%
+  inner_join(positioning_NRG, by = "UserID") %>%
+  rename(
+    PAAS_NRG = Mentally_demanding,
+    BORG_NRG = Physically_demanding
+  ) %>%
+  mutate(
+    PAAS_NRG = as.numeric(str_extract(PAAS_NRG, "\\d+(\\.\\d+)?")),
+    BORG_NRG = as.numeric(str_extract(BORG_NRG, "\\d+(\\.\\d+)?"))
+  ) %>%
+  inner_join(positioning_RG, by = "UserID") %>%
+  rename(
+    PAAS_RG = Mentally_demanding,
+    BORG_RG = Physically_demanding
+  ) %>%
+  mutate(
+    PAAS_RG = as.numeric(str_extract(PAAS_RG, "\\d+(\\.\\d+)?")),
+    BORG_RG = as.numeric(str_extract(BORG_RG, "\\d+(\\.\\d+)?"))
+  ) %>%
+  inner_join(positioning_preference, by = "UserID") %>%
+  rename(
+    behaviour_preference = Positioning_preference,
+    behaviour_feedback = Positioning_feedback
+  ) %>%
+  mutate(
+      behaviour_preference = case_when(
+    str_detect(behaviour_preference, "Static orientation") ~ "staticOrientation",
+    str_detect(behaviour_preference, "Adaptive orientation") ~ "adaptiveOrientation",
+    str_detect(behaviour_preference, "no preference") ~ "noPreference",
+    TRUE ~ "unknown"
+  ) ) %>%
+  filter(Type == "positionTask") %>%
+  select(UserID, TaskID, ActionID, rotateGlobeWhileDragging, distance, direction, Date, ActionStatus, main_translation_x,
+  main_translation_y, main_translation_z, target_translation_x, target_translation_y, target_translation_z, 
+  match_accuracy_result, status, PAAS_NRG, BORG_NRG, PAAS_RG, BORG_RG, behaviour_preference, behaviour_feedback) %>%
+  mutate(positionCondition = if_else(rotateGlobeWhileDragging, "rotatingGlobe", "nonRotatingGlobe")) %>%
+  select(-rotateGlobeWhileDragging) %>%
+  mutate(distance = as.factor(distance), 
+         direction = as.factor(direction), 
+         positionCondition = as.factor(positionCondition),
+         status = as.factor(status),
+         behaviour_preference = as.factor(behaviour_preference))
+
+
+```
+
+### Position Task Study
+```{r PositionStudy}
+### Accuracy
+#### Normality
+data.positioning.matched <- data.positioning %>%
+  filter(status == "Matched")
+
+shapiro.test(data.positioning.matched$match_accuracy_result)
+
+hist(data.positioning.matched$match_accuracy_result, breaks = 100,
+     main = "Histogram (Zoomed)", xlab = "Accuracy",
+     col = "lightblue", xlim = c(0, 0.06))
+
+plot(density(data.positioning.matched$match_accuracy_result), 
+     main = "Density Plot (Zoomed)", xlab = "Accuracy",
+     col = "blue", lwd = 2, xlim = c(0, 0.6))
+
+# Although the w value is close to 1, the p value is below 0.05 so we reject null hypothesis that the data is normally distributed
+# So, we cannot use one way ANOVA, instead, we use Wilcoxon signed-rank test
+
+#### Statistical tests 
+data.positioning.matched.accuracy_avg.wide <- data.positioning.matched %>%
+  group_by(UserID, positionCondition) %>%
+  summarise(mean_accuracy = mean(match_accuracy_result, na.rm = TRUE), .groups = 'drop') %>%
+  pivot_wider(names_from = positionCondition, values_from = mean_accuracy)
+
+wilcox.test(data.positioning.matched.accuracy_avg.wide$rotatingGlobe, data.positioning.matched.accuracy_avg.wide$nonRotatingGlobe, paired = TRUE)
+
+# Since p = 0.8501, which is much greater than the conventional threshold of 0.05:
+# You fail to reject the null hypothesis.
+# This means there is no evidence of a statistically significant difference in accuracy between the rotatingGlobe and nonRotatingGlobe conditions.
+# In fact, the very high p-value suggests that the differences are minimal and likely due to random variation.
+
+# This Wilcoxon signed-rank test showed no significant difference in match accuracy between the rotatingGlobe and nonRotatingGlobe conditions, V = 42, p = .85.
+
+data.positioning.matched.accuracy_avg.long <- data.positioning.matched.accuracy_avg.wide %>%
+  pivot_longer(cols = c(rotatingGlobe, nonRotatingGlobe), 
+               names_to = "Condition", 
+               values_to = "Accuracy")
+
+ggplot(data.positioning.matched.accuracy_avg.long, aes(x = Condition, y = Accuracy, group = UserID)) +
+  geom_line(aes(color = as.factor(UserID))) +
+  geom_point(size = 3) +
+  labs(title = "Paired Accuracy: Moving vs Non-Moving Globe",
+       x = "Condition",
+       y = "Match Accuracy") +
+  theme_minimal()
+
+ggplot(data.positioning.matched.accuracy_avg.long, aes(x = Condition, y = Accuracy)) +
+  geom_boxplot(outlier.shape = NA, fill = "lightblue") +
+  geom_jitter(width = 0.1, size = 2, alpha = 0.7) +
+  labs(title = "Accuracy by Globe Movement Condition",
+       x = "Condition",
+       y = "Match Accuracy") +
+  theme_minimal()
+
+### Completion Time
+data.positioning.taskCompletion_avg <- data.positioning %>%
+  group_by(UserID, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  )
+
+shapiro.test(data.positioning.taskCompletion_avg$completion_time)
+
+data.positioning.taskCompletion_avg.wide <- data.positioning %>%
+  group_by(UserID, positionCondition, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  group_by(UserID, positionCondition) %>%
+  summarise(
+    avg_completion_time = mean(completion_time),
+    .groups = "drop"
+  ) %>%
+  pivot_wider(names_from = positionCondition, values_from = avg_completion_time)
+
+wilcox.test(
+  data.positioning.taskCompletion_avg.wide$rotatingGlobe,
+  data.positioning.taskCompletion_avg.wide$nonRotatingGlobe,
+  paired = TRUE,
+  alternative = "two.sided"
+)
+
+data.positioning.taskCompletion_avg.long <- data.positioning.taskCompletion_avg.wide %>%
+  pivot_longer(cols = c(rotatingGlobe, nonRotatingGlobe),
+               names_to = "Condition",
+               values_to = "completion_time")
+
+ggplot(data.positioning.taskCompletion_avg.long, aes(x = Condition, y = completion_time, group = UserID)) +
+  geom_line(aes(color = as.factor(UserID)), linewidth = 1, alpha = 0.6) +
+  geom_point(size = 3) +
+  labs(
+    title = "Task Completion Time by Condition",
+    x = "Condition",
+    y = "Completion Time (minutes)",
+    color = "UserID"
+  ) +
+  theme_minimal()
+
+ggplot(data.positioning.taskCompletion_avg.long, aes(x = Condition, y = completion_time)) +
+  geom_boxplot(outlier.shape = NA, fill = "lightblue") +
+  geom_jitter(width = 0.1, size = 2, alpha = 0.7) +
+  labs(title = "Accuracy by Globe Movement Condition",
+       x = "Condition",
+       y = "Match Accuracy") +
+  theme_minimal()
+
+### Subjective Measures
+#### Physical Exertion
+
+# Spearman’s rank correlation is a non-parametric test.
+# It does not assume normal distribution of the variables.
+# It works on ranks of the data, not the raw values — so it’s robust against skewed or non-normal distributions.
+
+data.positioning.matched.RG <- data.positioning.matched %>% 
+  filter(positionCondition == "rotatingGlobe")
+
+cor.test(data.positioning.matched.RG$BORG_RG, 
+         data.positioning.matched.RG$match_accuracy_result, method = "spearman")
+
+ggplot(data.positioning.matched.RG, aes(x = BORG_RG, y = match_accuracy_result)) +
+  geom_point(color = "steelblue", size = 2, alpha = 0.7) +
+  geom_smooth(method = "loess", color = "darkred", se = TRUE) +
+  labs(
+    title = "Correlation between Physical Exertion and Accuracy (Rotating Globe)",
+    x = "Physical Exertion (BORG_RG)",
+    y = "Match Accuracy Result"
+  ) +
+  theme_minimal()
+
+data.positioning.matched.NRG <- data.positioning.matched %>% 
+  filter(positionCondition == "nonRotatingGlobe")
+
+cor.test(data.positioning.matched.NRG$BORG_NRG, 
+         data.positioning.matched.NRG$match_accuracy_result, method = "spearman")
+
+data.positioning.taskCompletion_avg.RG <- data.positioning %>%
+  group_by(UserID, positionCondition, BORG_RG, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  filter(positionCondition == "rotatingGlobe")
+
+cor.test(data.positioning.taskCompletion_avg.RG$BORG_RG, 
+         data.positioning.taskCompletion_avg.RG$completion_time, method = "spearman")
+
+data.positioning.taskCompletion_avg.NRG <- data.positioning %>%
+  group_by(UserID, positionCondition, BORG_NRG, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  filter(positionCondition == "nonRotatingGlobe")
+
+cor.test(data.positioning.taskCompletion_avg.NRG$BORG_NRG, 
+         data.positioning.taskCompletion_avg.NRG$completion_time, method = "spearman")
+
+# BORG vs Accuracy
+data.positioning.matched.RG$condition <- "RG"
+data.positioning.matched.NRG$condition <- "NRG"
+
+data.positioning.matched.combined <- bind_rows(
+  data.positioning.matched.RG %>% rename(BORG = BORG_RG),
+  data.positioning.matched.NRG %>% rename(BORG = BORG_NRG)
+)
+
+ggplot(data.positioning.matched.combined, aes(x = BORG, y = match_accuracy_result, color = condition)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = "Physical Exertion vs Match Accuracy",
+    x = "BORG Scale",
+    y = "Match Accuracy",
+    color = "Condition"
+  ) +
+  scale_color_manual(values = c("RG" = "blue", "NRG" = "red")) +
+  theme_minimal()
+
+# BORG vs Completion Time
+
+data.positioning.taskCompletion_avg.RG$condition <- "RG"
+data.positioning.taskCompletion_avg.NRG$condition <- "NRG"
+
+data.positioning.taskCompletion_avg.combined <- bind_rows(
+  data.positioning.taskCompletion_avg.RG %>% 
+    rename(BORG = BORG_RG),
+  data.positioning.taskCompletion_avg.NRG %>% 
+    rename(BORG = BORG_NRG)
+)
+
+ggplot(data.positioning.taskCompletion_avg.combined, aes(x = BORG, y = completion_time, color = condition)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = "Physical Exertion vs Completion Time",
+    x = "BORG Scale",
+    y = "Completion Time (min)",
+    color = "Condition"
+  ) +
+  scale_color_manual(values = c("RG" = "blue", "NRG" = "red")) +
+  theme_minimal()
+
+#### Preference
+data.positioning %>%
+  select(UserID, behaviour_preference) %>%
+  distinct() %>%  
+  count(behaviour_preference) %>%
+  mutate(
+    percent = n / sum(n),
+    ncount = paste0(n, "\n", percent_format()(percent))
+  ) %>%
+  ggplot(aes(x = "", y = n, fill = behaviour_preference)) +
+  geom_col(width = 1, color = "white") +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = ncount), position = position_stack(vjust = 0.5), size = 4) +
+  labs(
+    title = "Distribution of Positioning Behaviour Preferences",
+    fill = "Preference"
+  ) +
+  theme_void()
+#### Comments
+### Summary
+```
+
+## Study: Rotating
+### Rotating Data Preparation
+```{r Rotating Data Preparation}
+data.rotating <- data %>%
+  inner_join(demographic, by = "UserID") %>%
+  inner_join(rotation_OH, by = "UserID") %>%
+  rename(
+    PAAS_OH = Mentally_demanding,
+    BORG_OH = Physically_demanding
+  ) %>%
+  mutate(
+    PAAS_OH = as.numeric(str_extract(PAAS_OH, "\\d+(\\.\\d+)?")),
+    BORG_OH = as.numeric(str_extract(BORG_OH, "\\d+(\\.\\d+)?"))
+  ) %>%
+  inner_join(rotation_TH, by = "UserID") %>%
+  rename(
+    PAAS_TH = Mentally_demanding,
+    BORG_TH = Physically_demanding
+  ) %>%
+  mutate(
+    PAAS_TH = as.numeric(str_extract(PAAS_TH, "\\d+(\\.\\d+)?")),
+    BORG_TH = as.numeric(str_extract(BORG_TH, "\\d+(\\.\\d+)?"))
+  ) %>%  
+  inner_join(rotation_preference, by = "UserID") %>%
+  rename(
+    behaviour_preference = Rotation_preference,
+    behaviour_feedback = Rotation_feedback
+  ) %>%
+  mutate(
+      behaviour_preference = case_when(
+    str_detect(behaviour_preference, "One-handed") ~ "oneHandedPreference",
+    str_detect(behaviour_preference, "Two-handed") ~ "twoHandedPreference",
+    str_detect(behaviour_preference, "no preference") ~ "noPreference",
+    TRUE ~ "unknown"
+  )) %>%
+  filter(Type == "rotationTask") %>%
+  select(UserID, TaskID, ActionID, oneHandedRotationGesture, complexity, Date, ActionStatus, main_rotation_x,
+  main_rotation_y, main_rotation_z, main_rotation_w, target_rotation_x, target_rotation_y, target_rotation_z,
+  target_rotation_w,match_accuracy_result, status, PAAS_OH, BORG_OH, PAAS_TH, BORG_TH, behaviour_preference, behaviour_feedback) %>%
+  mutate(rotationCondition = if_else(oneHandedRotationGesture, "oneHanded", "twoHanded")) %>%
+  select(-oneHandedRotationGesture) %>%
+  mutate(complexity = as.factor(complexity), 
+         rotationCondition = as.factor(rotationCondition),
+         status = as.factor(status),
+         behaviour_preference = as.factor(behaviour_preference))
+
+```
+
+### Rotation Task Study
+```{r Rotation Task Study}
+### Accuracy
+#### Normality
+data.rotating.matched <- data.rotating %>%
+  filter(status == "Matched")
+
+shapiro.test(data.rotating.matched$match_accuracy_result)
+
+hist(data.rotating.matched$match_accuracy_result, breaks = 100,
+     main = "Histogram (Zoomed)", xlab = "Accuracy",
+     col = "lightblue", xlim = c(0, 0.5))
+
+plot(density(data.rotating.matched$match_accuracy_result), 
+     main = "Density Plot (Zoomed)", xlab = "Accuracy",
+     col = "blue", lwd = 2, xlim = c(0, 0.5))
+
+# Although the w value is close to 1, the p value is below 0.05 so we reject null hypothesis that the data is normally distributed
+# So, we cannot use one way ANOVA, instead, we use Wilcoxon signed-rank test
+
+#### Statistical tests 
+data.rotating.matched.accuracy_avg.wide <- data.rotating.matched %>%
+  group_by(UserID, rotationCondition) %>%
+  summarise(mean_accuracy = mean(match_accuracy_result, na.rm = TRUE), .groups = 'drop') %>%
+  pivot_wider(names_from = rotationCondition, values_from = mean_accuracy)
+
+wilcox.test(data.rotating.matched.accuracy_avg.wide$oneHanded, data.rotating.matched.accuracy_avg.wide$twoHanded, paired = TRUE)
+
+# Since p = 0.0771, and assuming a conventional significance level of 0.05:
+# I do not have strong evidence to reject the null hypothesis.
+# I would conclude that there is no statistically significant difference in accuracy between oneHanded and twoHanded conditions.
+# However, the p-value is relatively close to 0.05, which might suggest a trend toward significance. This could mean:
+# With a slightly larger sample size or reduced variability, the result might become significant.
+# It’s worth reporting as a non-significant trend (e.g., p = .077, “approaching significance”).
+# This Wilcoxon signed-rank test showed that the difference in mean accuracy between the oneHanded and twoHanded conditions was not statistically significant, V = 16, p = .077.
+
+data.rotating.matched.accuracy_avg.long <- data.rotating.matched.accuracy_avg.wide %>%
+  pivot_longer(cols = c(oneHanded, twoHanded), 
+               names_to = "Condition", 
+               values_to = "Accuracy")
+
+ggplot(data.rotating.matched.accuracy_avg.long, aes(x = Condition, y = Accuracy, group = UserID)) +
+  geom_line(aes(color = as.factor(UserID))) +
+  geom_point(size = 3) +
+  labs(title = "Paired Accuracy: Moving vs Non-Moving Globe",
+       x = "Condition",
+       y = "Match Accuracy") +
+  theme_minimal()
+
+ggplot(data.rotating.matched.accuracy_avg.long, aes(x = Condition, y = Accuracy)) +
+  geom_boxplot(outlier.shape = NA, fill = "lightblue") +
+  geom_jitter(width = 0.1, size = 2, alpha = 0.7) +
+  labs(title = "Accuracy by Globe Movement Condition",
+       x = "Condition",
+       y = "Match Accuracy") +
+  theme_minimal()
+
+### Completion Time
+data.rotating.taskCompletion_avg <- data.rotating %>%
+  group_by(UserID, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  )
+
+shapiro.test(data.rotating.taskCompletion_avg$completion_time)
+
+data.rotating.taskCompletion_avg.wide <- data.rotating %>%
+  group_by(UserID, rotationCondition, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  group_by(UserID, rotationCondition) %>%
+  summarise(
+    avg_completion_time = mean(completion_time),
+    .groups = "drop"
+  ) %>%
+  pivot_wider(names_from = rotationCondition, values_from = avg_completion_time)
+
+wilcox.test(
+  data.rotating.taskCompletion_avg.wide$oneHanded,
+  data.rotating.taskCompletion_avg.wide$twoHanded,
+  paired = TRUE,
+  alternative = "two.sided"
+)
+
+data.rotating.taskCompletion_avg.long <- data.rotating.taskCompletion_avg.wide %>%
+  pivot_longer(cols = c(oneHanded, twoHanded),
+               names_to = "Condition",
+               values_to = "completion_time")
+
+ggplot(data.rotating.taskCompletion_avg.long, aes(x = Condition, y = completion_time, group = UserID)) +
+  geom_line(aes(color = as.factor(UserID)), linewidth = 1, alpha = 0.6) +
+  geom_point(size = 3) +
+  labs(
+    title = "Task Completion Time by Condition",
+    x = "Condition",
+    y = "Completion Time (minutes)",
+    color = "UserID"
+  ) +
+  theme_minimal()
+
+ggplot(data.rotating.taskCompletion_avg.long, aes(x = Condition, y = completion_time)) +
+  geom_boxplot(outlier.shape = NA, fill = "lightblue") +
+  geom_jitter(width = 0.1, size = 2, alpha = 0.7) +
+  labs(title = "Accuracy by Globe Movement Condition",
+       x = "Condition",
+       y = "Match Accuracy") +
+  theme_minimal()
+### Subjective Measures
+#### Physical Exertion
+# Spearman’s rank correlation is a non-parametric test.
+# It does not assume normal distribution of the variables.
+# It works on ranks of the data, not the raw values — so it’s robust against skewed or non-normal distributions.
+
+data.rotating.matched.OH <- data.rotating.matched %>% 
+  filter(rotationCondition == "oneHanded")
+
+cor.test(data.rotating.matched.OH$BORG_OH, 
+         data.rotating.matched.OH$match_accuracy_result, method = "spearman")
+
+ggplot(data.rotating.matched.OH, aes(x = BORG_OH, y = match_accuracy_result)) +
+  geom_point(color = "steelblue", size = 2, alpha = 0.7) +
+  geom_smooth(method = "loess", color = "darkred", se = TRUE) +
+  labs(
+    title = "Correlation between Physical Exertion and Accuracy (Rotating Globe)",
+    x = "Physical Exertion (BOOH_OH)",
+    y = "Match Accuracy Result"
+  ) +
+  theme_minimal()
+
+data.rotating.matched.TH <- data.rotating.matched %>% 
+  filter(rotationCondition == "twoHanded")
+
+cor.test(data.rotating.matched.TH$BORG_TH, 
+         data.rotating.matched.TH$match_accuracy_result, method = "spearman")
+
+data.rotating.taskCompletion_avg.OH <- data.rotating %>%
+  group_by(UserID, rotationCondition, BORG_OH, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  filter(rotationCondition == "oneHanded")
+
+cor.test(data.rotating.taskCompletion_avg.OH$BORG_OH, 
+         data.rotating.taskCompletion_avg.OH$completion_time, method = "spearman")
+
+data.rotating.taskCompletion_avg.TH <- data.rotating %>%
+  group_by(UserID, rotationCondition, BORG_TH, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  filter(rotationCondition == "twoHanded")
+
+cor.test(data.rotating.taskCompletion_avg.TH$BORG_TH, 
+         data.rotating.taskCompletion_avg.TH$completion_time, method = "spearman")
+
+# BORG vs Accuracy
+
+data.rotating.matched.OH$condition <- "OH"
+data.rotating.matched.TH$condition <- "TH"
+
+data.rotating.matched.combined <- bind_rows(
+  data.rotating.matched.OH %>% rename(BORG = BORG_OH),
+  data.rotating.matched.TH %>% rename(BORG = BORG_TH)
+)
+
+ggplot(data.rotating.matched.combined, aes(x = BORG, y = match_accuracy_result, color = condition)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = "Physical Exertion vs Match Accuracy",
+    x = "BORG Scale",
+    y = "Match Accuracy",
+    color = "Condition"
+  ) +
+  scale_color_manual(values = c("OH" = "blue", "TH" = "red")) +
+  theme_minimal()
+
+# BORG vs Completion Time
+
+data.rotating.taskCompletion_avg.OH$condition <- "OH"
+data.rotating.taskCompletion_avg.TH$condition <- "TH"
+
+data.rotating.taskCompletion_avg.combined <- bind_rows(
+  data.rotating.taskCompletion_avg.OH %>% 
+    rename(BORG = BORG_OH),
+  data.rotating.taskCompletion_avg.TH %>% 
+    rename(BORG = BORG_TH)
+)
+
+ggplot(data.rotating.taskCompletion_avg.combined, aes(x = BORG, y = completion_time, color = condition)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = "Physical Exertion vs Completion Time",
+    x = "BORG Scale",
+    y = "Completion Time (min)",
+    color = "Condition"
+  ) +
+  scale_color_manual(values = c("OH" = "blue", "TH" = "red")) +
+  theme_minimal()
+#### Preference
+data.rotating %>%
+  select(UserID, behaviour_preference) %>%
+  distinct() %>%  
+  count(behaviour_preference) %>%
+  mutate(
+    percent = n / sum(n),
+    ncount = paste0(n, "\n", percent_format()(percent))
+  ) %>%
+  ggplot(aes(x = "", y = n, fill = behaviour_preference)) +
+  geom_col(width = 1, color = "white") +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = ncount), position = position_stack(vjust = 0.5), size = 4) +
+  labs(
+    title = "Distribution of Rotation Behaviour Preferences",
+    fill = "Preference"
+  ) +
+  theme_void()
+#### Comments
+### Summary
+```
+
+## Study: Scale
+### Scale Data Preparation
+```{r Scale Data Preparation}
+data.scale <- data %>%
+  inner_join(demographic, by = "UserID") %>%
+  inner_join(scale_MG, by = "UserID") %>%
+    rename(
+    PAAS_MG = Mentally_demanding,
+    BORG_MG = Physically_demanding
+  ) %>%
+  mutate(
+    PAAS_MG = as.numeric(str_extract(PAAS_MG, "\\d+(\\.\\d+)?")),
+    BORG_MG = as.numeric(str_extract(BORG_MG, "\\d+(\\.\\d+)?"))
+  ) %>%
+  inner_join(scale_NMG, by = "UserID") %>%
+  rename(
+    PAAS_NMG = Mentally_demanding,
+    BORG_NMG = Physically_demanding
+  ) %>%
+  mutate(
+    PAAS_NMG = as.numeric(str_extract(PAAS_NMG, "\\d+(\\.\\d+)?")),
+    BORG_NMG = as.numeric(str_extract(BORG_NMG, "\\d+(\\.\\d+)?"))
+  ) %>%
+  inner_join(scale_preference, by = "UserID") %>%
+  rename(
+    behaviour_preference = Scale_preference,
+    behaviour_feedback = Scale_feedback
+  ) %>%
+  mutate(
+    behaviour_preference = case_when(
+    str_detect(behaviour_preference, "Maintain distance") ~ "maintainDistance",
+    str_detect(behaviour_preference, "Maintain globe") ~ "maintainGlobe",
+    str_detect(behaviour_preference, "no preference") ~ "noPreference",
+    TRUE ~ "unknown"
+  )) %>%
+  filter(Type == "scaleTask") %>%
+  select(UserID, TaskID, ActionID, moveGlobeWhileScaling, zoomDirection, Date, ActionStatus, main_scale_x,
+  main_scale_y, main_scale_z, target_scale_x, target_scale_y, target_scale_z, match_accuracy_result, status,
+  PAAS_MG, BORG_MG, PAAS_NMG, BORG_NMG, behaviour_preference, behaviour_feedback) %>%
+  mutate(scaleCondition = if_else(moveGlobeWhileScaling, "movingGlobe", "nonMovingGlobe")) %>%
+  select(-moveGlobeWhileScaling) %>%
+  mutate(zoomDirection = as.factor(zoomDirection), 
+         scaleCondition = as.factor(scaleCondition),
+         status = as.factor(status),
+         behaviour_preference = as.factor(behaviour_preference))
+
+```
+
+### Scale Task Study
+```{r Scale Task Study}
+### Accuracy
+#### Normality
+data.scale.matched <- data.scale %>%
+  filter(status == "Matched")
+
+shapiro.test(data.scale.matched$match_accuracy_result)
+
+hist(data.scale.matched$match_accuracy_result, breaks = 100,
+     main = "Histogram (Zoomed)", xlab = "Accuracy",
+     col = "lightblue", xlim = c(0, 0.5))
+
+plot(density(data.scale.matched$match_accuracy_result), 
+     main = "Density Plot (Zoomed)", xlab = "Accuracy",
+     col = "blue", lwd = 2, xlim = c(0, 0.5))
+
+# Although the w value is close to 1, the p value is below 0.05 so we reject null hypothesis that the data is normally distributed
+# So, we cannot use one way ANOVA, instead, we use Wilcoxon signed-rank test
+
+#### Statistical tests 
+data.scale.matched.accuracy_avg.wide <- data.scale.matched %>%
+  group_by(UserID, scaleCondition) %>%
+  summarise(mean_accuracy = mean(match_accuracy_result, na.rm = TRUE), .groups = 'drop') %>%
+  pivot_wider(names_from = scaleCondition, values_from = mean_accuracy)
+
+wilcox.test(data.scale.matched.accuracy_avg.wide$movingGlobe, data.scale.matched.accuracy_avg.wide$nonMovingGlobe, paired = TRUE)
+
+# Since p = 0.6772 > 0.05, we fail to reject the null hypothesis.
+# This suggests that there is no statistically significant difference in accuracy between the movingGlobe and nonMovingGlobe conditions.
+# The relatively high p-value implies any difference observed is likely due to chance.
+
+# This Wilcoxon signed-rank test indicated no significant difference in match accuracy between the movingGlobe and nonMovingGlobe conditions, V = 33, p = .68.
+
+data.scale.matched.accuracy_avg.long <- data.scale.matched.accuracy_avg.wide %>%
+  pivot_longer(cols = c(movingGlobe, nonMovingGlobe), 
+               names_to = "Condition", 
+               values_to = "Accuracy")
+
+ggplot(data.scale.matched.accuracy_avg.long, aes(x = Condition, y = Accuracy, group = UserID)) +
+  geom_line(aes(color = as.factor(UserID))) +
+  geom_point(size = 3) +
+  labs(title = "Paired Accuracy: Moving vs Non-Moving Globe",
+       x = "Condition",
+       y = "Match Accuracy") +
+  theme_minimal()
+
+ggplot(data.scale.matched.accuracy_avg.long, aes(x = Condition, y = Accuracy)) +
+  geom_boxplot(outlier.shape = NA, fill = "lightblue") +
+  geom_jitter(width = 0.1, size = 2, alpha = 0.7) +
+  labs(title = "Accuracy by Globe Movement Condition",
+       x = "Condition",
+       y = "Match Accuracy") +
+  theme_minimal()
+
+### Completion Time
+data.scale.taskCompletion_avg <- data.scale %>%
+  group_by(UserID, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  )
+
+shapiro.test(data.scale.taskCompletion_avg$completion_time)
+
+data.scale.taskCompletion_avg.wide <- data.scale %>%
+  group_by(UserID, scaleCondition, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  group_by(UserID, scaleCondition) %>%
+  summarise(
+    avg_completion_time = mean(completion_time),
+    .groups = "drop"
+  ) %>%
+  pivot_wider(names_from = scaleCondition, values_from = avg_completion_time)
+
+wilcox.test(
+  data.scale.taskCompletion_avg.wide$movingGlobe,
+  data.scale.taskCompletion_avg.wide$nonMovingGlobe,
+  paired = TRUE,
+  alternative = "two.sided"
+)
+
+data.scale.taskCompletion_avg.long <- data.scale.taskCompletion_avg.wide %>%
+  pivot_longer(cols = c(movingGlobe, nonMovingGlobe),
+               names_to = "Condition",
+               values_to = "completion_time")
+
+ggplot(data.scale.taskCompletion_avg.long, aes(x = Condition, y = completion_time, group = UserID)) +
+  geom_line(aes(color = as.factor(UserID)), linewidth = 1, alpha = 0.6) +
+  geom_point(size = 3) +
+  labs(
+    title = "Task Completion Time by Condition",
+    x = "Condition",
+    y = "Completion Time (minutes)",
+    color = "UserID"
+  ) +
+  theme_minimal()
+
+ggplot(data.scale.taskCompletion_avg.long, aes(x = Condition, y = completion_time)) +
+  geom_boxplot(outlier.shape = NA, fill = "lightblue") +
+  geom_jitter(width = 0.1, size = 2, alpha = 0.7) +
+  labs(title = "Accuracy by Globe Movement Condition",
+       x = "Condition",
+       y = "Match Accuracy") +
+  theme_minimal()
+### Subjective Measures
+#### Physical Exertion
+# Spearman’s rank correlation is a non-parametric test.
+# It does not assume normal distribution of the variables.
+# It works on ranks of the data, not the raw values — so it’s robust against skewed or non-normal distributions.
+
+data.positioning.matched.RG <- data.positioning.matched %>% 
+  filter(positionCondition == "rotatingGlobe")
+
+cor.test(data.positioning.matched.RG$BORG_RG, 
+         data.positioning.matched.RG$match_accuracy_result, method = "spearman")
+
+ggplot(data.positioning.matched.RG, aes(x = BORG_RG, y = match_accuracy_result)) +
+  geom_point(color = "steelblue", size = 2, alpha = 0.7) +
+  geom_smooth(method = "loess", color = "darkred", se = TRUE) +
+  labs(
+    title = "Correlation between Physical Exertion and Accuracy (Rotating Globe)",
+    x = "Physical Exertion (BORG_RG)",
+    y = "Match Accuracy Result"
+  ) +
+  theme_minimal()
+
+data.positioning.matched.NRG <- data.positioning.matched %>% 
+  filter(positionCondition == "nonRotatingGlobe")
+
+cor.test(data.positioning.matched.NRG$BORG_NRG, 
+         data.positioning.matched.NRG$match_accuracy_result, method = "spearman")
+
+data.positioning.taskCompletion_avg.RG <- data.positioning %>%
+  group_by(UserID, positionCondition, BORG_RG, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  filter(positionCondition == "rotatingGlobe")
+
+cor.test(data.positioning.taskCompletion_avg.RG$BORG_RG, 
+         data.positioning.taskCompletion_avg.RG$completion_time, method = "spearman")
+
+data.positioning.taskCompletion_avg.NRG <- data.positioning %>%
+  group_by(UserID, positionCondition, BORG_NRG, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  filter(positionCondition == "nonRotatingGlobe")
+
+cor.test(data.positioning.taskCompletion_avg.NRG$BORG_NRG, 
+         data.positioning.taskCompletion_avg.NRG$completion_time, method = "spearman")
+
+# BORG vs Accuracy
+ggplot(data.positioning.matched.RG, aes(x = BORG_RG, y = match_accuracy_result)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(title = "Physical Exertion vs Match Accuracy", x = "BORG Scale (RG)", y = "Match Accuracy")
+
+ggplot(data.positioning.matched.NRG, aes(x = BORG_NRG, y = match_accuracy_result)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(title = "Physical Exertion vs Match Accuracy", x = "BORG Scale (RG)", y = "Match Accuracy")
+
+data.positioning.matched.RG$condition <- "RG"
+data.positioning.matched.NRG$condition <- "NRG"
+
+data.positioning.matched.combined <- bind_rows(
+  data.positioning.matched.RG %>% rename(BORG = BORG_RG),
+  data.positioning.matched.NRG %>% rename(BORG = BORG_NRG)
+)
+
+ggplot(data.positioning.matched.combined, aes(x = BORG, y = match_accuracy_result, color = condition)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = "Physical Exertion vs Match Accuracy",
+    x = "BORG Scale",
+    y = "Match Accuracy",
+    color = "Condition"
+  ) +
+  scale_color_manual(values = c("RG" = "blue", "NRG" = "red")) +
+  theme_minimal()
+
+# BORG vs Completion Time
+
+data.positioning.taskCompletion_avg.RG$condition <- "RG"
+data.positioning.taskCompletion_avg.NRG$condition <- "NRG"
+
+data.positioning.taskCompletion_avg.combined <- bind_rows(
+  data.positioning.taskCompletion_avg.RG %>% 
+    rename(BORG = BORG_RG),
+  data.positioning.taskCompletion_avg.NRG %>% 
+    rename(BORG = BORG_NRG)
+)
+
+ggplot(data.positioning.taskCompletion_avg.combined, aes(x = BORG, y = completion_time, color = condition)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = "Physical Exertion vs Completion Time",
+    x = "BORG Scale",
+    y = "Completion Time (min)",
+    color = "Condition"
+  ) +
+  scale_color_manual(values = c("RG" = "blue", "NRG" = "red")) +
+  theme_minimal()
+#### Preference
+data.scale %>%
+  select(UserID, behaviour_preference) %>%
+  distinct() %>%  
+  count(behaviour_preference) %>%
+  mutate(
+    percent = n / sum(n),
+    ncount = paste0(n, "\n", percent_format()(percent))
+  ) %>%
+  ggplot(aes(x = "", y = n, fill = behaviour_preference)) +
+  geom_col(width = 1, color = "white") +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = ncount), position = position_stack(vjust = 0.5), size = 4) +
+  labs(
+    title = "Distribution of Scale Behaviour Preferences",
+    fill = "Preference"
+  ) +
+  theme_void()
+  
+
+#### Comments
+### Summary
+```

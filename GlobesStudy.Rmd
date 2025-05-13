@@ -1,0 +1,810 @@
+---
+title: "Globes Study Research"
+author: "Faisal Agung Abdillah"
+date: "2025-04-22"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r Load Libraries}
+library(tidyverse)
+library(dplyr)
+library(car)
+library(ggplot2)
+library(lubridate)
+```
+
+
+```{r Data preparation}
+data <- read_csv("study_tasks.csv")
+demographic <- read_csv("final_introductory.csv")
+positioning_NRG <- read_csv("final_positioning_NRG.csv")
+positioning_RG <- read_csv("final_positioning_RG.csv")
+positioning_preference <- read_csv("final_positioning_comparison.csv")
+rotation_OH <- read_csv("final_rotation_OH.csv")
+rotation_TH <- read_csv("final_rotation_TH.csv")
+rotation_preference <- read_csv("final_rotation_comparison.csv")
+scale_MG <- read_csv("final_scale_MG.csv")
+scale_NMG <- read_csv("final_scale_NMG.csv")
+scale_preference <- read_csv("final_scale_comparison.csv")
+combined_preference <- read_csv("final_outro_comparison.csv")
+
+
+str(data)
+summary(data)
+view(data)
+
+demographic$Timestamp <- trimws(demographic$Timestamp)
+demographic$Timestamp <- dmy_hms(demographic$Timestamp, tz = "Australia/Melbourne")
+
+str(demographic)
+summary(demographic)
+
+str(positioning_NRG)
+summary(positioning_NRG)
+
+str(positioning_RG)
+summary(positioning_RG)
+
+str(positioning_preference)
+summary(positioning_preference)
+
+str(rotation_OH)
+summary(rotation_OH)
+
+str(rotation_TH)
+summary(rotation_TH)
+
+str(rotation_preference)
+summary(rotation_preference)
+
+str(scale_MG)
+summary(scale_MG)
+
+str(scale_NMG)
+summary(scale_NMG)
+
+str(scale_preference)
+summary(scale_preference)
+
+str(combined_preference)
+summary(combined_preference)
+```
+
+# Normality Test
+```{r Normality Test}
+set.seed(123)
+sample_data <- sample(data$match_accuracy_result, 5000)
+shapiro.test(sample_data)
+
+hist(data$match_accuracy_result, breaks = 100,
+     main = "Histogram (Zoomed)", xlab = "Accuracy",
+     col = "lightblue", xlim = c(-1, 100))
+
+plot(density(data$match_accuracy_result), 
+     main = "Density Plot (Zoomed)", xlab = "Accuracy",
+     col = "darkgreen", lwd = 2, xlim = c(-1, 5))
+
+qqnorm(data$match_accuracy_result); qqline(data$match_accuracy_result, col = "red")
+
+log_data <- log(data$match_accuracy_result + 1e-6)
+hist(log_data, breaks = 100, main = "Log-transformed", col = "lightgreen")
+qqnorm(log_data); qqline(log_data, col = "red")
+
+sqrt_data <- sqrt(data$match_accuracy_result)
+hist(sqrt_data, breaks = 100, main = "Sqrt-transformed", col = "lightcoral")
+qqnorm(sqrt_data); qqline(sqrt_data, col = "red")
+
+data %>%
+  filter(match_accuracy_result >= 2)
+
+nrow(data)
+
+z_scores <- scale(data$match_accuracy_result)
+outliers_z <- which(abs(z_scores) > 3)
+length(outliers_z)
+summary(data$match_accuracy_result[outliers_z])
+
+Q1 <- quantile(data$match_accuracy_result, 0.25)
+Q3 <- quantile(data$match_accuracy_result, 0.75)
+IQR_val <- Q3 - Q1
+lower_bound <- Q1 - 1.5 * IQR_val
+upper_bound <- Q3 + 1.5 * IQR_val
+outliers_iqr <- data$match_accuracy_result < lower_bound | data$match_accuracy_result > upper_bound
+sum(outliers_iqr)
+summary(data$match_accuracy_result[outliers_iqr])
+
+boxplot(data$match_accuracy_result, main = "Boxplot of Accuracy", horizontal = TRUE)
+```
+
+
+# Check visually
+``` {r Visual check}
+hist(data$match_accuracy_result)
+qqnorm(data$match_accuracy_result)
+```
+
+Total number of participants
+```{r Number of Participants}
+length(unique(data$UserID))
+```
+
+# Descriptive Statistics
+
+## Accuracy under certain conditions
+``` {r Accuracy by conditions}
+data %>%
+  filter(rotateGlobeWhileDragging == TRUE & Type == "positionTask") %>%
+  summarise(mean_accuracy = mean(match_accuracy_result, na.rm = TRUE),
+            sd_accuracy   = sd(match_accuracy_result, na.rm = TRUE),
+            count         = n())
+
+data %>%
+  filter(rotateGlobeWhileDragging == FALSE & Type == "positionTask") %>%
+  summarise(mean_accuracy = mean(match_accuracy_result, na.rm = TRUE),
+            sd_accuracy   = sd(match_accuracy_result, na.rm = TRUE),
+            count         = n())
+
+data %>%
+  filter(oneHandedRotationGesture == TRUE & Type == "rotationTask") %>%
+  summarise(mean_accuracy = mean(match_accuracy_result, na.rm = TRUE),
+            sd_accuracy   = sd(match_accuracy_result, na.rm = TRUE),
+            count         = n())
+
+data %>%
+  filter(oneHandedRotationGesture == FALSE & Type == "rotationTask") %>%
+  summarise(mean_accuracy = mean(match_accuracy_result, na.rm = TRUE),
+            sd_accuracy   = sd(match_accuracy_result, na.rm = TRUE),
+            count         = n())
+
+data %>%
+  filter(moveGlobeWhileScaling == TRUE & Type == "scaleTask") %>%
+  summarise(mean_accuracy = mean(match_accuracy_result, na.rm = TRUE),
+            sd_accuracy   = sd(match_accuracy_result, na.rm = TRUE),
+            count         = n())
+
+data %>%
+  filter(moveGlobeWhileScaling == FALSE & Type == "scaleTask") %>%
+  summarise(mean_accuracy = mean(match_accuracy_result, na.rm = TRUE),
+            sd_accuracy   = sd(match_accuracy_result, na.rm = TRUE),
+            count         = n())
+```
+
+## Significant Task & Summary Statistics
+```{r Significant Task & Summary Statistics}
+data %>%
+  group_by(Type) %>%
+  summarise(mean_accuracy      = mean(match_accuracy_result, na.rm = TRUE),
+            median_completion   = median(Date, na.rm = TRUE),
+            total_attempts      = n()) %>%
+  arrange(desc(mean_accuracy))
+
+kruskal.test(match_accuracy_result ~ Type, data = data)
+```
+
+## Participant Characteristics
+```{r Participant Characteristics}
+data %>%
+  filter(Type == "positionTask") %>%
+  group_by(UserID, Type) %>%
+  summarise(
+    total_tasks = n_distinct(TaskID),
+    avg_accuracy = mean(match_accuracy_result, na.rm = TRUE),
+    used_rotating_globe = sum(rotateGlobeWhileDragging, na.rm = TRUE),
+    used_non_rotating_globe = sum(!rotateGlobeWhileDragging, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(avg_accuracy))
+
+data %>%
+  filter(Type == "rotationTask") %>%
+  group_by(UserID, Type) %>%
+  summarise(
+    total_tasks = n_distinct(TaskID),
+    avg_accuracy = mean(match_accuracy_result, na.rm = TRUE),
+    used_one_hand = sum(oneHandedRotationGesture, na.rm = TRUE),
+    used_two_hand = sum(!oneHandedRotationGesture, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(avg_accuracy))
+
+data %>%
+  filter(Type == "scaleTask") %>%
+  group_by(UserID, Type) %>%
+  summarise(
+    total_tasks = n_distinct(TaskID),
+    avg_accuracy = mean(match_accuracy_result, na.rm = TRUE),
+    used_moving_globe = sum(moveGlobeWhileScaling, na.rm = TRUE),
+    used_non_moving_globe = sum(!moveGlobeWhileScaling, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(avg_accuracy))
+```
+  
+# Visualisation of completion time by number of attempts
+```{r Visualisation of completion time by number of attempts}
+## Attempt Distribution
+## Bar chart - by Type
+data %>%
+  group_by(UserID, Type) %>%
+  summarise(observations = n(), .groups = "drop") %>%
+  ggplot(aes(x = Type, y = observations, fill = Type)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~UserID, scales = "free_y") +
+  labs(title = "Number of Attempts per Task Type by User",
+       x = "User ID", y = "Number of Attempts", fill = "Task Type") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        strip.text = element_text(size = 8),
+        plot.title = element_text(size = 14, face = "bold"))
+
+## Bar chart - by User
+data %>%
+  group_by(UserID, Type) %>%
+  summarise(observations = n(), .groups = "drop") %>%
+  ggplot(aes(x = factor(UserID), y = observations, fill = Type)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~Type, scales = "free_y") +
+  labs(title = "Number of Attempts per Task Type by User",
+       x = "User ID", y = "Number of Attempts") +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+    strip.text = element_text(size = 10, face = "bold"),
+    plot.title = element_text(size = 14, face = "bold")
+  )
+
+## Average Attempts per Task by User
+data %>%
+  group_by(UserID, Type, TaskID) %>%
+  summarise(attempts = n(), .groups = "drop") %>%
+  group_by(UserID, Type) %>%
+  summarise(avg_attempts = mean(attempts), .groups = "drop") %>%
+  ggplot(aes(x = Type, y = avg_attempts, fill = Type)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~UserID, scales = "free_y") +
+  labs(title = "Average Attempts per Task by User",
+       x = NULL, y = "Avg Attempts per Task", fill = "Task Type") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        strip.text = element_text(size = 8),
+        plot.title = element_text(size = 14, face = "bold"))
+
+## Average Attempts per Task all users
+data %>%
+  group_by(UserID, Type, TaskID) %>%
+  summarise(attempts = n(), .groups = "drop") %>%
+  group_by(UserID, Type) %>%
+  summarise(avg_attempts = mean(attempts), .groups = "drop") %>%
+  ggplot(aes(x = Type, y = avg_attempts, fill = Type)) +
+  geom_col(position = "dodge") +
+  labs(title = "Average Attempts per Task all users",
+       x = NULL, y = "Avg Attempts per Task", fill = "Task Type") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        strip.text = element_text(size = 8),
+        plot.title = element_text(size = 14, face = "bold"))
+
+## Average Attempts per User by Task
+data %>%
+  group_by(UserID, Type, TaskID) %>%
+  summarise(attempts = n(), .groups = "drop") %>%
+  group_by(UserID, Type) %>%
+  summarise(avg_attempts = mean(attempts), .groups = "drop") %>%
+  ggplot(aes(x = UserID, y = avg_attempts, fill = Type)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~Type, scales = "free_y") +
+  labs(title = "Average Attempts per User by Task",
+       x = NULL, y = "Avg Attempts per User", fill = "User") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        strip.text = element_text(size = 8),
+        plot.title = element_text(size = 14, face = "bold"))
+
+## Average Attempts per User by Task
+data %>%
+  group_by(UserID, Type, TaskID) %>%
+  summarise(attempts = n(), .groups = "drop") %>%
+  group_by(UserID, Type) %>%
+  summarise(avg_attempts = mean(attempts), .groups = "drop") %>%
+  ggplot(aes(x = UserID, y = avg_attempts, fill = Type)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~Type, scales = "free_y") +
+  labs(title = "Average Attempts per User by Task",
+       x = NULL, y = "Avg Attempts per User", fill = "User") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        strip.text = element_text(size = 8),
+        plot.title = element_text(size = 14, face = "bold"))
+
+```
+# Completion time by time taken 
+```{r Completion time by time taken}
+# Completion time distribution
+# Convert ISO timestamp to POSIXct
+data_posixct <- data %>%
+  mutate(DateTime = ymd_hms(Date))
+
+# Average Tasks Completion Time
+data %>%
+  group_by(Type, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  group_by(Type) %>%
+  summarise(
+    avg_completion_time = mean(completion_time, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = Type, y = avg_completion_time, fill = Type)) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Average Completion Time per User by Task",
+    x = NULL, y = "Avg Completion Time (mins)", fill = "User"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    strip.text = element_text(size = 8),
+    plot.title = element_text(size = 14, face = "bold")
+  )
+
+# Average Total Type Completion Time 
+data %>%
+  group_by(Type, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  group_by(Type) %>%
+  summarise(
+    avg_completion_time = mean(completion_time, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = Type, y = avg_completion_time, fill = Type)) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Average Completion Time per User by Task",
+    x = NULL, y = "Avg Completion Time (mins)", fill = "User"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    strip.text = element_text(size = 8),
+    plot.title = element_text(size = 14, face = "bold")
+  )
+
+# Average Total Type Completion Time by Users
+data %>%
+  group_by(UserID, Type, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  group_by(UserID, Type) %>%
+  summarise(
+    avg_completion_time = mean(completion_time, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = UserID, y = avg_completion_time, fill = Type)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~Type, scales = "free_y") +
+  labs(
+    title = "Average Completion Time per User by Task",
+    x = NULL, y = "Avg Completion Time (mins)", fill = "User"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    strip.text = element_text(size = 8),
+    plot.title = element_text(size = 14, face = "bold")
+  )
+
+## Average Tasks Completion Time by Users
+data %>%
+  group_by(UserID, Type, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = Type, y = completion_time, fill = Type)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~UserID, scales = "free_y") +
+  labs(
+    title = "Total Completion Time per Task Type by User",
+    x = "Task Type", y = "Total Time (mins)", fill = "Task Type"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+    axis.ticks.x = element_blank(),
+    strip.text = element_text(size = 8),
+    plot.title = element_text(size = 14, face = "bold")
+  )
+
+## Average Accuracy per Tasks by users
+data %>%
+  group_by(UserID, Type) %>%
+  summarise(
+    avg_accuracy = mean(match_accuracy_result, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = Type, y = avg_accuracy, fill = Type)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~UserID, scales = "free_y") +
+  labs(
+    title = "Average Match Accuracy per Task Type by User",
+    x = "Task Type", y = "Average Match Accuracy", fill = "Task Type"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+    axis.ticks.x = element_blank(),
+    strip.text = element_text(size = 8),
+    plot.title = element_text(size = 14, face = "bold")
+  )
+
+# Accuracy distribution
+ggplot(data, aes(x = match_accuracy_result)) +
+  geom_density(fill = "skyblue", alpha = 0.6) +
+  geom_rug(alpha = 0.1) +
+  facet_wrap(~Type, scales = "free_y") +
+  coord_cartesian(xlim = c(-0.05, 0.05)) +  
+  scale_x_continuous(limits = c(-1, 1)) +
+  labs(title = "Distribution of Match Accuracy by Task Type",
+       x = "Match Accuracy",
+       y = "Density") +
+  theme_minimal() +
+  theme(strip.text = element_text(size = 10),
+        plot.title = element_text(face = "bold"))
+
+hist(data$match_accuracy_result)
+```
+
+# Correlation with factors
+```{r Correlation with factors}
+
+# Completion time by gender
+data %>%
+  group_by(UserID, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  inner_join(demographic, by = "UserID") %>%
+  group_by(Gender) %>%
+  summarise(
+    mean_completion_time = mean(completion_time, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = as.factor(Gender), y = mean_completion_time, fill = as.factor(Gender))) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Average Task Completion Time by Gender",
+    x = "Gender",
+    y = "Mean Completion Time (mins)"
+  ) +
+  theme_minimal()
+
+# Accuracy by gender
+data %>%
+  inner_join(demographic, by = "UserID") %>%
+  group_by(Gender, Type) %>%
+  summarise(
+    mean_accuracy = mean(match_accuracy_result, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = as.factor(Gender), y = mean_accuracy, fill = as.factor(Gender))) +
+  geom_col(position = "dodge") +
+  facet_wrap(~Type, scales = "free_y") +
+  labs(
+    title = "Average Match Accuracy by Gender and Type",
+    x = "Gender",
+    y = "Mean Accuracy",
+    fill = "Gender"
+  ) +
+  theme_minimal()
+
+# Completion time by academic level
+data %>%
+  group_by(UserID, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  inner_join(demographic, by = "UserID") %>%
+  group_by(Academic_level) %>%
+  summarise(
+    mean_completion_time = mean(completion_time, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = as.factor(Academic_level), y = mean_completion_time, fill = as.factor(Academic_level))) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Average Task Completion Time by Gender",
+    x = "Gender",
+    y = "Mean Completion Time (mins)"
+  ) +
+  theme_minimal()
+
+# Accuracy by age academic level
+data %>%
+  inner_join(demographic, by = "UserID") %>%
+  group_by(Academic_level, Type) %>%
+  summarise(
+    mean_accuracy = mean(match_accuracy_result, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = as.factor(Academic_level), y = mean_accuracy, fill = as.factor(Academic_level))) +
+  geom_col(position = "dodge") +
+  facet_wrap(~Type, scales = "free_y") +
+  labs(
+    title = "Average Match Accuracy by Gender and Type",
+    x = "Gender",
+    y = "Mean Accuracy",
+    fill = "Gender"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Completion time by age group
+data %>%
+  group_by(UserID, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  inner_join(demographic, by = "UserID") %>%
+  group_by(Age_group) %>%
+  summarise(
+    mean_completion_time = mean(completion_time, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = as.factor(Age_group), y = mean_completion_time, fill = as.factor(Age_group))) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Average Task Completion Time by Gender",
+    x = "Gender",
+    y = "Mean Completion Time (mins)"
+  ) +
+  theme_minimal()
+
+# Accuracy by age group
+data %>%
+  inner_join(demographic, by = "UserID") %>%
+  group_by(Age_group, Type) %>%
+  summarise(
+    mean_accuracy = mean(match_accuracy_result, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = as.factor(Age_group), y = mean_accuracy, fill = as.factor(Age_group))) +
+  geom_col(position = "dodge") +
+  facet_wrap(~Type, scales = "free_y") +
+  labs(
+    title = "Average Match Accuracy by Gender and Type",
+    x = "Gender",
+    y = "Mean Accuracy",
+    fill = "Gender"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Completion time by previous AR/VR experience
+data %>%
+  group_by(UserID, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  inner_join(demographic, by = "UserID") %>%
+  group_by(Exp_ARVR) %>%
+  summarise(
+    mean_completion_time = mean(completion_time, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = as.factor(Exp_ARVR), y = mean_completion_time, fill = as.factor(Exp_ARVR))) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Average Task Completion Time by Gender",
+    x = "Gender",
+    y = "Mean Completion Time (mins)"
+  ) +
+  theme_minimal()
+
+# Accuracy by previous AR/VR experience
+data %>%
+  inner_join(demographic, by = "UserID") %>%
+  group_by(Exp_ARVR, Type) %>%
+  summarise(
+    mean_accuracy = mean(match_accuracy_result, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = as.factor(Exp_ARVR), y = mean_accuracy, fill = as.factor(Exp_ARVR))) +
+  geom_col(position = "dodge") +
+  facet_wrap(~Type, scales = "free_y") +
+  labs(
+    title = "Average Match Accuracy by Gender and Type",
+    x = "Gender",
+    y = "Mean Accuracy",
+    fill = "Gender"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Completion time by previous globes Experience
+data %>%
+  group_by(UserID, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  inner_join(demographic, by = "UserID") %>%
+  group_by(Globe_usage_frequency) %>%
+  summarise(
+    mean_completion_time = mean(completion_time, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = as.factor(Globe_usage_frequency), y = mean_completion_time, fill = as.factor(Globe_usage_frequency))) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Average Task Completion Time by Gender",
+    x = "Gender",
+    y = "Mean Completion Time (mins)"
+  ) +
+  theme_minimal()
+
+# Accuracy by previous globes Experience
+data %>%
+  inner_join(demographic, by = "UserID") %>%
+  group_by(Globe_usage_frequency, Type) %>%
+  summarise(
+    mean_accuracy = mean(match_accuracy_result, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = as.factor(Globe_usage_frequency), y = mean_accuracy, fill = as.factor(Globe_usage_frequency))) +
+  geom_col(position = "dodge") +
+  facet_wrap(~Type, scales = "free_y") +
+  labs(
+    title = "Average Match Accuracy by Gender and Type",
+    x = "Gender",
+    y = "Mean Accuracy",
+    fill = "Gender"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Completion time by previous Apple Vision Pro Experience
+data %>%
+  group_by(UserID, TaskID) %>%
+  summarise(
+    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  inner_join(demographic, by = "UserID") %>%
+  group_by(Have_used_VisionPro) %>%
+  summarise(
+    mean_completion_time = mean(completion_time, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = as.factor(Have_used_VisionPro), y = mean_completion_time, fill = as.factor(Have_used_VisionPro))) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Average Task Completion Time by Gender",
+    x = "Gender",
+    y = "Mean Completion Time (mins)"
+  ) +
+  theme_minimal()
+
+# Accuracy by previous Apple Vision Pro Experience
+data %>%
+  inner_join(demographic, by = "UserID") %>%
+  group_by(Have_used_VisionPro, Type) %>%
+  summarise(
+    mean_accuracy = mean(match_accuracy_result, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = as.factor(Have_used_VisionPro), y = mean_accuracy, fill = as.factor(Have_used_VisionPro))) +
+  geom_col(position = "dodge") +
+  facet_wrap(~Type, scales = "free_y") +
+  labs(
+    title = "Average Match Accuracy by Gender and Type",
+    x = "Gender",
+    y = "Mean Accuracy",
+    fill = "Gender"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```  
+
+# Participants preference
+```{r Participants preference}
+library(scales)  
+
+# Positioning behaviour preference
+positioning_preference %>%
+  mutate(
+    ShortLabel = recode(Positioning_preference,
+      "Static orientation: The globe's orientation remains fixed while it moves." = "Static Orientation",
+      "Adaptive orientation: The globe rotates as it moves, so I always see the same side of the Earth." = "Adaptive Orientation",
+      "I have no preference" = "No Preference"
+    )
+  ) %>%
+  count(ShortLabel) %>%
+  mutate(
+    percent = n / sum(n),
+    ncount = paste0(n, "\n", percent_format()(percent))
+  ) %>%
+  ggplot(aes(x = ShortLabel, y = n, fill = ShortLabel)) +
+  geom_col(color = "white") + 
+  geom_text(aes(label = ncount), position = position_stack(vjust = 0.5), size = 4) +  # Labels with count & percentage
+  labs(
+    title = "Distribution of Positioning Preferences",
+    fill = "Preference"
+  ) +
+  theme_minimal() +  # Use a minimal theme for a cleaner look
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for readability
+
+#Rotating behaviour preference
+rotation_preference %>%
+  count(Rotation_preference) %>%
+  mutate(
+    percent = n / sum(n),
+    ncount = paste0(n, "\n", percent_format()(percent))
+  ) %>%
+  ggplot(aes(x = "", y = n, fill = Rotation_preference)) +
+  geom_col(width = 1, color = "white") +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = ncount), position = position_stack(vjust = 0.5), size = 4) +
+  labs(
+    title = "Distribution of Rotation Preferences",
+    fill = "Preference"
+  ) +
+  theme_void()
+
+#Scaling behaviour preference
+scale_preference %>%
+  mutate(
+    ShortLabel = recode(Scale_preference,
+      "Maintain distance to globe: The position of the globe moves while its size changes." = "Maintain Distance to Globe",
+      "Maintain globe position: The position of the globe remains unchanged, irrespective of size adjustments" = "Maintain Globe Position",
+      "I have no preference" = "No Preference"
+    )
+  ) %>%
+  count(ShortLabel) %>%
+  mutate(
+    percent = n / sum(n),
+    ncount = paste0(n, "\n", percent_format()(percent))
+  ) %>%
+  ggplot(aes(x = "", y = n, fill = ShortLabel)) +
+  geom_col(width = 1, color = "white") +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = ncount), position = position_stack(vjust = 0.5), size = 4) +
+  labs(
+    title = "Distribution of Scale Preferences",
+    fill = "Preference"
+  ) +
+  theme_void()
+  
+view(positioning_preference)
+
+```

@@ -1,0 +1,903 @@
+---
+title: "Globes Study Research"
+author: "Faisal Agung Abdillah"
+date: "2025-04-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Idioms Naming Clarifications
+
+We use slightly different idiom names in the data and in the paper. Here are the changes from the data to the paper.
+
+- 2D Bar Billboard -> Billboarded Bars
+- 2D Bar Surface -> Tangential Bars
+- 3D Bar -> Normal Bars
+- Circle Billboard -> Billboarded Circles
+- Circle Surface -> Tangential Circles
+
+# Basic Data Description
+
+```{r}
+load(".RData")
+dataStats = data %>% select(pid, idiom, pairRelSize, pairMaxRange, participantRelSize, pairAngularDist, error, completionTimeSec) %>% mutate(absError = abs(error)) 
+
+dataStats = dataStats %>% mutate(pairRelSize = as.character(pairRelSize), pairAngularDist = as.character(pairAngularDist),pairMaxRange = as.character(pairMaxRange))
+
+dataStats = dataStats %>% mutate(pairRelSize = as.factor(pairRelSize), pairAngularDist = as.factor(pairAngularDist), pairMaxRange = as.factor(pairMaxRange)) %>% mutate(idiom  = as.factor(idiom))
+
+library(tidyverse)
+data <- read_csv("study_tasks.csv")
+glimpse(data)
+```
+
+Total number of participants
+```{r}
+length(unique(data$UserID))
+```
+
+Crowdsourcing: 35 Volunteer: 17
+```{r}
+volunteer.ids = c(2, 3, 4, 5, 6, 42:53)
+```
+Distribution of volunteers
+```{r}
+ggplot(data %>% filter(pid %in% volunteer.ids), aes(x = abs(error))) + geom_histogram(fill = "white", color = "black", binwidth = 1) + xlim(c(0, 120))+ ylim(c(0, 600))
+```
+```{r}
+ggplot(data %>% filter(pid %nin% volunteer.ids), aes(x = abs(error))) + geom_histogram(fill = "white", color = "black", binwidth = 1) + xlim(c(0, 120)) + ylim(c(0, 600))
+```
+```{r}
+ggplot(data %>% group_by(pid) %>% mutate(order = row_number()), aes(x = order, y = abs(error))) + geom_point(aes(color = idiom)) + geom_smooth() + facet_wrap(~pid) + theme_bw()
+```
+The chart shows that participants’ performances are not declining over time (indicated by relatively straight smooth line).
+
+# Data Quality
+## Quality of CS
+
+First, lets inspect error per trial per participants. As in Heer and Bostock (2010) study, we set a cut-off error of 40. The bar chart bellow shows participants error per trial and idioms. The trial with more than 40 error is indicated in red.
+```{r}
+ggplot(data %>% filter(pid >= 2 & pid <= 12) %>% 
+         select(prolificID, pid, idiom, participantRelSize, pairRelSize, error) %>% 
+         group_by(prolificID, pid, idiom) %>% 
+         mutate(order=row_number(), aboveThreshold =(if_else(abs(error) > 40, "0_moreThan40", "1_lessThan40"))) , aes(x = order , y = abs(error))) + 
+  geom_bar(stat = "identity", aes(fill = as.factor(aboveThreshold))) + 
+  facet_wrap(~idiom, ncol =  1) + facet_grid(pid~idiom) + theme_bw() + geom_hline(yintercept =  40) 
+```
+```{r}
+ggplot(data %>% filter(pid >= 13 & pid <= 23) %>% 
+         select(prolificID, pid, idiom, participantRelSize, pairRelSize, error) %>% 
+         group_by(prolificID, pid, idiom) %>% 
+         mutate(order=row_number(), aboveThreshold =(if_else(abs(error) > 40, "0_moreThan40", "1_lessThan40"))) , aes(x = order , y = abs(error))) + 
+  geom_bar(stat = "identity", aes(fill = as.factor(aboveThreshold))) + 
+  facet_wrap(~idiom, ncol =  1) + facet_grid(pid~idiom) + theme_bw() + geom_hline(yintercept =  40) 
+```
+```{r}
+ggplot(data %>% filter(pid >= 24 & pid <= 34) %>% 
+         select(prolificID, pid, idiom, participantRelSize, pairRelSize, error) %>% 
+         group_by(prolificID, pid, idiom) %>% 
+         mutate(order=row_number(), aboveThreshold =(if_else(abs(error) > 40, "0_moreThan40", "1_lessThan40"))) , aes(x = order , y = abs(error))) + 
+  geom_bar(stat = "identity", aes(fill = as.factor(aboveThreshold))) + 
+  facet_wrap(~idiom, ncol =  1) + facet_grid(pid~idiom) + theme_bw() + geom_hline(yintercept =  40) 
+```
+```{r}
+ggplot(data %>% filter(pid >= 35 & pid <= 45) %>% 
+         select(prolificID, pid, idiom, participantRelSize, pairRelSize, error) %>% 
+         group_by(prolificID, pid, idiom) %>% 
+         mutate(order=row_number(), aboveThreshold =(if_else(abs(error) > 40, "0_moreThan40", "1_lessThan40"))) , aes(x = order , y = abs(error))) + 
+  geom_bar(stat = "identity", aes(fill = as.factor(aboveThreshold))) + 
+  facet_wrap(~idiom, ncol =  1) + facet_grid(pid~idiom) + theme_bw() + geom_hline(yintercept =  40) 
+```
+```{r}
+ggplot(data %>% filter(pid >= 46 & pid <= 53) %>% 
+         select(prolificID, pid, idiom, participantRelSize, pairRelSize, error) %>% 
+         group_by(prolificID, pid, idiom) %>% 
+         mutate(order=row_number(), aboveThreshold =(if_else(abs(error) > 40, "0_moreThan40", "1_lessThan40"))) , aes(x = order , y = abs(error))) + 
+  geom_bar(stat = "identity", aes(fill = as.factor(aboveThreshold)), fill = "#19BDC2") + 
+  facet_wrap(~idiom, ncol =  1) + facet_grid(pid~idiom) + theme_bw() + geom_hline(yintercept =  40)
+```
+We can see some participants have suspiciously more trials with error > 40 on each idiom (e.g. P13, P16, P21, P28, P29, P33, P36).
+
+The chart bellow shows the percentage of trials with error > 40. We plot intercept lines on 2%, 5%, and 10%. We use these values as threshold of acceptance of data quality. Participants that has percentage of error above the line will be discarded.
+
+```{r}
+dataThreshold = dataStats %>% 
+         group_by(pid, idiom) %>% 
+         mutate(order=row_number(), aboveThreshold =(if_else(abs(error) > 40, "1_above_40", "0_bellow_equal_40")))
+
+dataThresholdCount = dataThreshold %>% group_by(pid, aboveThreshold) %>% summarise(nAboveThreshold = n(), percent = n()/150 * 100) 
+
+ggplot(dataThresholdCount %>% filter(percent < 50) , aes(y = percent, x = as.factor(pid))) +
+  geom_bar(stat = "identity", fill= "#e6550d") + 
+  geom_hline(yintercept = 5) +
+  geom_hline(yintercept = 10) +
+  geom_hline(yintercept = 2) +
+  annotate("text", x = 19, y = 6, label = "5% (7.5 error trials)") +
+  annotate("text", x = 19, y = 11, label = "10% (15 error trials") +
+  annotate("text", x = 19, y = 3, label = "2% (3 error trials)") +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 90)) + 
+  ylab("Percent trials with error > 40 (150 total)") +
+  xlab("PID") 
+```
+To further clarify participants performance, we looked at participants response times. We highlight trials with response time less than 1 second.
+
+```{r}
+ggplot(data %>% filter(pid >= 2 & pid <= 12) %>% 
+         select(prolificID, pid, idiom, completionTimeSec) %>% 
+         group_by(prolificID, pid, idiom) %>% 
+         mutate(order=row_number(), lessThanOneSec = (if_else(completionTimeSec < 1, "lessThan1", "moreThan1"))) , aes(x = order , y = completionTimeSec)) + 
+  geom_bar(stat = "identity", aes(fill = lessThanOneSec)) + 
+  facet_wrap(~idiom, ncol =  1) + facet_grid(pid~idiom) + theme_bw() + geom_hline(yintercept =  40) + coord_cartesian(ylim = c(0,3))
+```
+```{r}
+ggplot(data %>% filter(pid >= 13 & pid <= 23) %>% 
+         select(prolificID, pid, idiom, completionTimeSec) %>% 
+         group_by(prolificID, pid, idiom) %>% 
+         mutate(order=row_number(), lessThanOneSec = (if_else(completionTimeSec < 1, "lessThan1", "moreThan1"))) , aes(x = order , y = completionTimeSec)) + 
+  geom_bar(stat = "identity", aes(fill = lessThanOneSec)) + 
+  facet_wrap(~idiom, ncol =  1) + facet_grid(pid~idiom) + theme_bw() + geom_hline(yintercept =  40) + coord_cartesian(ylim = c(0,3))
+```
+```{r}
+ggplot(data %>% filter(pid >= 24 & pid <= 34) %>% 
+         select(prolificID, pid, idiom, completionTimeSec) %>% 
+         group_by(prolificID, pid, idiom) %>% 
+         mutate(order=row_number(), lessThanOneSec = (if_else(completionTimeSec < 1, "lessThan1", "moreThan1"))) , aes(x = order , y = completionTimeSec)) + 
+  geom_bar(stat = "identity", aes(fill = lessThanOneSec)) + 
+  facet_wrap(~idiom, ncol =  1) + facet_grid(pid~idiom) + theme_bw() + geom_hline(yintercept =  40) + coord_cartesian(ylim = c(0,3))
+```
+```{r}
+ggplot(data %>% filter(pid >= 35 & pid <= 45) %>% 
+         select(prolificID, pid, idiom, completionTimeSec) %>% 
+         group_by(prolificID, pid, idiom) %>% 
+         mutate(order=row_number(), lessThanOneSec = (if_else(completionTimeSec < 1, "lessThan1", "moreThan1"))) , aes(x = order , y = completionTimeSec)) + 
+  geom_bar(stat = "identity", aes(fill = lessThanOneSec)) + 
+  facet_wrap(~idiom, ncol =  1) + facet_grid(pid~idiom) + theme_bw() + geom_hline(yintercept =  40) + coord_cartesian(ylim = c(0,3))
+```
+```{r}
+ggplot(data %>% filter(pid >= 46) %>% 
+         select(prolificID, pid, idiom, completionTimeSec) %>% 
+         group_by(prolificID, pid, idiom) %>% 
+         mutate(order=row_number(), lessThanOneSec = (if_else(completionTimeSec < 1, "lessThan1", "moreThan1"))) , aes(x = order , y = completionTimeSec)) + 
+  geom_bar(stat = "identity", aes(fill = lessThanOneSec)) + 
+  facet_wrap(~idiom, ncol =  1) + facet_grid(pid~idiom) + theme_bw() + geom_hline(yintercept =  40) + coord_cartesian(ylim = c(0,3))
+```
+We can see that participants 13, 19, 24, 34, 36 have a notable number of trials under 1 second.
+
+The average absolute error and time per participant.
+
+```{r}
+dataStats.meanAbsError = dataStats %>% group_by(pid) %>% summarise(meanAbsError = mean(absError), sd = sd(absError), meanTimeSec = mean(completionTimeSec))
+
+ggplot(dataStats.meanAbsError, aes(x = meanAbsError)) + geom_histogram(binwidth = 0.5, fill = "white", color = "black") + theme_bw()
+```
+```{r}
+ggplot(dataStats.meanAbsError, aes(y = meanAbsError)) + geom_boxplot() 
+```
+We then identify outliers and extreme values using Boxplot method. Cited from identify_outliers() function in rstatix package:
+
+“Values above Q3 + 1.5xIQR or below Q1 - 1.5xIQR are considered as outliers. Values above Q3 + 3xIQR or below Q1 - 3xIQR are considered as extreme points (or extreme outliers).”
+
+```{r}
+participantOurliers.meanAbsError = dataStats.meanAbsError %>% identify_outliers(meanAbsError)
+participantOurliers.meanAbsError
+```
+
+Mean absolute error of participants 13 and 36 are considered outliers, which confirm our suspicion. We remove those two participants because we cannot guarantee that good trials that they did were not by chance.
+
+Participants 19, 24, 34 have a notable number of trials under 1 second but are not consider as outlier for absolute error.
+
+Removing “bad” crowdsourcing data.
+```{r}
+dataStats = dataStats %>% filter(pid != 13 & pid != 36)
+```
+## Trial Outliers
+Total participants
+```{r}
+length(unique(dataStats$pid))
+```
+Distribution of abs. error.
+```{r}
+ggplot(dataStats, aes(x = absError)) +
+  geom_histogram( fill = "white", color = "black")
+```
+remove outliers.
+```{r}
+dataStats = dataStats %>% mutate(zAbsError = (absError - mean(dataStats$absError))/sd(dataStats$absError))
+```
+Count and percentage of zAbsError > 3
+```{r}
+nz = nrow(dataStats %>% filter(zAbsError > 3))
+nz
+```
+```{r}
+nz/nrow(dataStats) * 100
+```
+Also remove trial that took more than 11 seconds.
+```{r}
+nt = nrow(dataStats %>% filter(completionTimeSec > 11))
+nt
+```
+```{r}
+nt/nrow(dataStats) * 100
+```
+Total removal
+```{r}
+nz + nt
+```
+```{r}
+(nz + nt) / nrow(dataStats) * 100
+```
+Remove outliers based on time > 11 seconds.
+```{r}
+dataStatsClean = dataStats %>% filter(completionTimeSec <= 11)
+```
+Remove outliers based on z-score > 3
+
+```{r}
+dataStatsClean = dataStatsClean %>% filter(zAbsError <= 3)
+```
+The clean data
+```{r}
+describe(dataStatsClean)
+```
+
+# Accuracy
+The distribution after outlier removal.
+
+Histogram:
+```{r}
+ggplot(dataStatsClean, aes(x = absError)) +
+  geom_histogram( fill = "white", color = "black", binwidth = 1) 
+```
+
+```{r}
+ggplot(dataStatsClean, aes(sample = absError)) + stat_qq() + stat_qq_line() + theme_bw()
+```
+
+The data is positive skew.
+
+Try square root of the data of the data.
+```{r}
+dataStatsClean = dataStatsClean %>% mutate(sqrtAbsErr = sqrt(absError + 1), logAbsErr = log2(absError + 1))
+```
+The distribution of the sqrtAbsErr.
+
+Histogram:
+```{r}
+ggplot(dataStatsClean, aes(x = logAbsErr)) +
+  geom_histogram( fill = "white", color = "black", binwidth = 0.5)
+```
+
+QQ plot:
+```{r}
+ggplot(dataStatsClean, aes(sample = sqrtAbsErr)) + stat_qq() + stat_qq_line() + theme_bw()
+```
+
+## Normality
+```{r}
+ks.test(dataStatsClean$sqrtAbsErr, "pnorm")
+```
+```{r}
+skewness(dataStatsClean$sqrtAbsErr)
+```
+```{r}
+kurtosis(dataStatsClean$sqrtAbsErr)
+```
+
+## ANOVA Test
+We use ARTool to perform ANOVA on non-normally distributed data.
+```{r}
+#The following lines are commented to avoid repeating the statistics test.
+#art.logError = art(data = dataStatsClean, logAbsErr ~ idiom * pairRelSize * pairMaxRange * pairAngularDist + (1|pid))
+#anova.art.logError = anova(art.logError)
+
+anova.art.logError
+```
+Significant differences
+
+- Main effects – idiom – relative size – max range
+- Interaction effects – idiom x relative size – idiom x max range – idiom x angular distance – idiom x relative size x max range
+
+## Main Effect on **Idiom**
+```{r}
+error.main.effect.idiom = emmeans(artlm(art.logError, "idiom"), pairwise~idiom, adjust = "Bonferroni", pbkrtest.limit = 7365)
+```
+```{r}
+error.main.effect.idiom
+```
+Accuracy 2DB > CB, CS 2DS > CB, CS 3D > CB, CS CB > CS
+
+Idiom takeaways
+
+- All bars visualisations more accurate than circles.
+- Circle surface is the worst.
+- No differences in accuracy are found among bars visualisations.
+```{r}
+ggplot(dataStats %>% group_by(idiom) %>% summarise(mean = mean(absError), sd = sd(absError), se = sd(absError)/sqrt(length(absError))), aes(x = as.factor(idiom), y = mean)) + 
+  geom_bar(stat="identity", fill = "white", color = "black") + 
+  geom_errorbar(aes(ymin = mean - 2 * se, ymax = mean + 2 * se), width = 0.25) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=0.5)) + xlab("Idioms") + ylab("Mean Abs. Error")
+```
+```{r}
+ggplot(dataStats %>% group_by(idiom) %>% summarise(mean = mean(error), sd = sd(error), se = sd(error)/sqrt(length(error))), aes(y = as.factor(idiom), x = mean)) + 
+  geom_bar(stat="identity", fill = "white", color = "black") + 
+  geom_errorbar(aes(xmin = mean - 2 * se, xmax = mean + 2 * se), width = 0.25) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=0.5)) + ylab("Idioms") + xlab("Mean Abs. Error")
+```
+
+## Main Effect on **realtive size**
+```{r}
+error.main.effect.relSize = emmeans(artlm(art.logError, "pairRelSize"), pairwise~pairRelSize, adjust = "Bonferroni", pbkrtest.limit = 7365)
+```
+```{r}
+error.main.effect.relSize
+```
+Relative size takeaways
+- 10 relative size is more accurate than all relative sizes
+- 30 relative size is more accurate than 50 & 70
+- 90 relative size is more accurate than 30, 50, 70
+
+```{r}
+ggplot(dataStats %>% group_by(pairRelSize) %>% summarise(mean = mean(absError), sd = sd(absError), se = sd(absError)/sqrt(length(absError))), aes(x = pairRelSize, y = mean)) + 
+  geom_bar(stat="identity", fill = "white", color = "black") + 
+  geom_errorbar(aes(ymin = mean - 2 * se, ymax = mean + 2 * se), width = 0.25) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=0.5)) 
+```
+
+
+## Main Effect on **max range**
+```{r}
+error.main.effect.maxRange = emmeans(artlm(art.logError, "pairMaxRange"), pairwise~pairMaxRange, adjust = "Bonferroni", pbkrtest.limit = 7365)
+```
+```{r}
+error.main.effect.maxRange
+```
+Larger is more accurate than smaller.
+```{r}
+ggplot(dataStats %>% group_by(pairMaxRange) %>% summarise(mean = mean(absError), sd = sd(absError), se = sd(absError)/sqrt(length(absError))), aes(x = pairMaxRange, y = mean)) + 
+  geom_bar(stat="identity", fill = "white", color = "black") + 
+  geom_errorbar(aes(ymin = mean - 2 * se, ymax = mean + 2 * se), width = 0.25) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=0.5)) 
+```
+
+
+## Interaction **idiom x relative size**
+```{r}
+error.interaction.idiom.pairMaxRange  = testInteractions(artlm(art.logError, "idiom:pairRelSize"), pairwise=c("idiom","pairRelSize"), adjustment="bonferroni", pbkrtest.limit = 7365)
+error.interaction.idiom.pairMaxRange
+```
+n the above output, a-b : d-e is interpreted as a difference-of-differences, i.e., the difference between (a-b | d) and (a-b | e). In other words, the question is, “is the difference between a and b in condition d significantly different from the difference between a and b in condition e?”
+
+Sig. interaction effect:
+
+- 2D Bar Billboard-Circle Surface : 10-90 -1005.83 1 16.9349 0.003868 **
+- 2D Bar Surface-Circle Surface : 10-90 -975.26 1 15.9070 0.006653 **
+- 2D Bar Billboard-Circle Billboard : 30-70 -1053.34 1 18.8136 0.001441 **
+- 2D Bar Surface-Circle Billboard : 30-70 -984.90 1 16.3641 0.005227 **
+- 3D Bar-Circle Billboard : 30-70 -996.29 1 16.7877 0.004180 **
+- 2D Bar Billboard-Circle Surface : 30-90 -1032.64 1 17.7858 0.002472 **
+- 2D Bar Surface-Circle Surface : 30-90 -1083.23 1 19.5052 0.001003 **
+- 2D Bar Billboard-Circle Surface : 50-90 -920.25 1 14.1874 0.016548 *
+- 3D Bar-Circle Surface : 50-90 -877.96 1 12.7924 0.034804 *
+```{r}
+ggplot(dataStatsClean %>% group_by(idiom, pairRelSize) %>% summarise(meanAbs = mean(absError), sd = sd(absError), se = sd(absError)/sqrt(length(absError))), aes(x = pairRelSize, y = meanAbs, group = idiom)) + 
+  geom_point(aes(shape = idiom), size = 2) +
+  geom_line(aes(color = idiom)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 30, vjust = 0.5, hjust=1)) 
+```
+There is crossover interaction between (2D Billboard - 2D Surface and Circle Billboard | 50%) and (2D Billboard - 2D Surface and Circle Billboard | 70%). However this crossover differences are not significant.
+## Interaction **idiom x max range**
+```{r}
+error.interaction.idiom.pairMaxRange = testInteractions(artlm(art.logError, "idiom:pairMaxRange"), pairwise=c("idiom","pairMaxRange"))
+
+error.interaction.idiom.pairMaxRange
+```
+```{r}
+ggplot(dataStatsClean %>% group_by(idiom, pairMaxRange) %>% summarise(meanAbs = mean(absError), sd = sd(absError), se = sd(absError)/sqrt(length(absError))), aes(x = pairMaxRange, y = meanAbs, group = idiom)) + 
+  geom_point(aes(shape = idiom), size = 2) +
+  geom_line(aes(color = idiom)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 30, vjust = 0.5, hjust=1)) 
+```
+Billboard-Circle Surface : Large-Small -804.97 1 27.2489 1.431e-06 - 2D Bar Surface-Circle Surface : Large-Small -824.95 1 28.5089 8.394e-07 - 3D Bar-Circle Billboard : Large-Small 698.38 1 20.5767 4.010e-05 - 3D Bar-Circle Surface : Large-Small -479.05 1 9.6102 0.01161
+- Circle Billboard-Circle Surface : Large-Small -1177.43 1 58.4777 2.056e-13 *
+
+There is a crossover interaction between (2D Bar Billboard and 3D | Large) and (2D Bar Billboard and 3D | Large) small. However, this interaction is not significant.
+## Interaction **idiom x angular distance**
+```{r}
+error.interaction.idiom.angularDist = testInteractions(artlm(art.logError, "idiom:pairAngularDist"), pairwise=c("idiom","pairAngularDist"), adjustment="bonferroni")
+
+error.interaction.idiom.angularDist
+```
+```{r}
+ggplot(dataStatsClean %>% mutate(pairAngularDist = as.numeric(as.character(pairAngularDist))) %>% group_by(idiom, pairAngularDist) %>% summarise(meanAbs = mean(absError), sd = sd(absError), se = sd(absError)/sqrt(length(absError))), aes(x = pairAngularDist, y = meanAbs, group = idiom)) + 
+  geom_point(aes(shape = idiom), size = 2) +
+  geom_line(aes(color = idiom)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 30, vjust = 0.5, hjust=1)) 
+```
+Sig diff. 3D Bar-Circle Billboard : 120-20 621.87 1 10.8311 0.02994 * No significant crossover effect was found.
+## Interaction **idiom x relative size x max range**
+```{r}
+error.interaction.idiom.relsize.maxRange =  testInteractions(artlm(art.logError, "idiom:pairRelSize:pairMaxRange"), pairwise=c("idiom","pairRelSize","pairMaxRange"), adjustment="bonferroni")
+
+error.interaction.idiom.relsize.maxRange
+```
+```{r}
+ggplot(dataStatsClean %>% mutate(pairRelSize = as.numeric(as.character(pairRelSize))) %>% group_by(idiom, pairRelSize, pairMaxRange) %>% summarise(meanError = mean(absError), sd = sd(absError), se = sd(absError)/sqrt(length(absError))), aes(x = pairRelSize, y = meanError, group = idiom)) + 
+  geom_point(aes(shape = idiom), size = 2) +
+  geom_line(aes(color = idiom)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 30, vjust = 0.5, hjust=1)) + facet_wrap(~pairMaxRange)
+```
+
+
+# Response Time
+Descriptive statistics.
+```{r}
+summaryTime = dataStatsClean %>% group_by(idiom) %>% summarise(meanTime = mean(completionTimeSec), sdTime = sd(completionTimeSec), seTime = sd(completionTimeSec)/sqrt(length(completionTimeSec)))
+
+summaryTime
+```
+```{r}
+ggplot(summaryTime, aes(x = idiom, y = meanTime)) + geom_bar(stat= "identity", fill = "white", color = "black") +   geom_errorbar(aes(ymin = meanTime - 2 * seTime, ymax = meanTime + 2 * seTime), width = 0.25) + theme_bw()
+```
+Distribution
+```{r}
+ggplot(dataStatsClean, aes(x = completionTimeSec)) + geom_histogram(fill = "white", color = "black")
+```
+Calculate log square root completion time
+```{r}
+dataStatsClean = dataStatsClean %>% mutate(sqrtCT = sqrt(completionTimeSec))
+```
+Distribution of sqrtCT.
+```{r}
+ggplot(dataStatsClean, aes(x = sqrtCT)) + geom_histogram(fill = "white", color = "black", binwidth = 0.2)
+```
+```{r}
+ks.test(dataStatsClean$sqrtCT, "pnorm")
+```
+```{r}
+skewness(dataStatsClean$sqrtCT)
+```
+```{r}
+kurtosis(dataStatsClean$sqrtCT)
+```
+Data not normal.
+
+## ANOVA test
+Using ARTool.
+```{r}
+#The following lines are commented to avoid repeating the statistics test.
+#art.completionTimeSec = art(data = dataStatsClean, completionTimeSec ~ idiom * pairRelSize * pairMaxRange * pairAngularDist + (1|pid))
+#anova.art.completionTimeSec = anova(art.completionTimeSec) # DO NOT UNCOMMENT - TAKES 6 HOURS TO COMPLETE
+
+anova.art.completionTimeSec
+```
+## Main effect on **idiom**
+
+
+```{r}
+time.main.effect.idiom = emmeans(artlm(art.completionTimeSec, "idiom"), pairwise~idiom, adjust = "Bonferroni", pbkrtest.limit = 7365)
+```
+```{r}
+time.main.effect.idiom
+```
+Response speed 2DB > 2DS, 3D CB, CS > 2DB, 2DS, 3D 2DS > 3D CB > CS
+
+Idiom takeaways
+
+- All circles based are faster than bars based.
+- Circle Billboard is the fastest
+- 2D Bar Billboard is faster than 2D Surface and 3D
+- 2D Surface is faster than 3D
+```{r}
+ggplot(dataStats %>% group_by(idiom) %>% summarise(mean = mean(completionTimeSec), sd = sd(completionTimeSec), se = sd(completionTimeSec)/sqrt(length(completionTimeSec))), aes(x = (idiom), y = mean)) + 
+  geom_bar(stat="identity", fill = "white", color = "black") + 
+  geom_errorbar(aes(ymin = mean - 2 * se, ymax = mean + 2 * se), width = 0.25) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=0.5)) + xlab("Idioms") + ylab("Mean Response Time (s)")
+```
+**relative size**
+```{r}
+time.main.effect.pairRelSize =  emmeans(artlm(art.completionTimeSec, "pairRelSize"), pairwise~pairRelSize, adjust = "Bonferroni", pbkrtest.limit = 7365)
+```
+```{r}
+time.main.effect.pairRelSize
+```
+
+- 10 is faster than 30, 50, 70, 90
+- 90 is faster than 50, 70
+
+```{r}
+ggplot(dataStats %>% group_by(pairRelSize) %>% summarise(mean = mean(completionTimeSec), sd = sd(completionTimeSec), se = sd(completionTimeSec)/sqrt(length(completionTimeSec))), aes(x = (pairRelSize), y = mean)) + 
+  geom_bar(stat="identity", fill = "white", color = "black") + 
+  geom_errorbar(aes(ymin = mean - 2 * se, ymax = mean + 2 * se), width = 0.25) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=0.5)) 
+```
+
+## Main effect on **max range**
+```{r}
+time.main.effect.pairMaxRange = emmeans(artlm(art.completionTimeSec, "pairMaxRange"), pairwise~pairMaxRange, adjust = "Bonferroni", pbkrtest.limit = 7365)
+```
+```{r}
+time.main.effect.pairMaxRange
+```
+Small is faster than larger.
+```{r}
+ggplot(dataStats %>% group_by(pairMaxRange) %>% summarise(mean = mean(completionTimeSec), sd = sd(completionTimeSec), se = sd(completionTimeSec)/sqrt(length(completionTimeSec))), aes(x = (pairMaxRange), y = mean)) + 
+  geom_bar(stat="identity", fill = "white", color = "black") + 
+  geom_errorbar(aes(ymin = mean - 2 * se, ymax = mean + 2 * se), width = 0.25) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=0.5)) 
+```
+
+
+## Main effect on **angular distance**
+```{r}
+time.main.effect.pairAngularDist = emmeans(artlm(art.completionTimeSec, "pairAngularDist"), pairwise~pairAngularDist, adjust = "Bonferroni",pbkrtest.limit = 7365)
+```
+```{r}
+time.main.effect.pairAngularDist
+```
+
+- 20 is faster than 60 and 120
+- 60 faster than 120
+```{r}
+ggplot(dataStats %>% group_by(pairAngularDist) %>% summarise(mean = mean(completionTimeSec), sd = sd(completionTimeSec), se = sd(completionTimeSec)/sqrt(length(completionTimeSec))), aes(x = (pairAngularDist), y = mean)) + 
+  geom_bar(stat="identity", fill = "white", color = "black") + 
+  geom_errorbar(aes(ymin = mean - 2 * se, ymax = mean + 2 * se), width = 0.25) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=0.5)) 
+```
+
+
+## Interaction **idiom x relative size**
+```{r}
+time.interaction.idiom.relSize = testInteractions(artlm(art.completionTimeSec, "idiom:pairRelSize"), pairwise=c("idiom","pairRelSize"), adjustment="bonferroni")
+
+time.interaction.idiom.relSize
+```
+```{r}
+ggplot(dataStatsClean %>% mutate(pairRelSize = as.factor(as.character(pairRelSize))) %>% group_by(idiom, pairRelSize) %>% summarise(meanTime = mean(completionTimeSec), sd = sd(completionTimeSec), se = sd(completionTimeSec)/sqrt(length(completionTimeSec))), aes(x = pairRelSize, y = meanTime, group = idiom)) + 
+  geom_point(aes(shape = idiom), size = 2) +
+  geom_line(aes(color = idiom)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 30, vjust = 0.5, hjust=1)) 
+```
+There is no significant crossover interactions.
+## Interaction **idiom x max range**
+```{r}
+time.interaction.idiom.maxRange = testInteractions(artlm(art.completionTimeSec, "idiom:pairMaxRange"), pairwise=c("idiom","pairMaxRange"), adjustment="bonferroni")
+
+time.interaction.idiom.maxRange
+```
+```{r}
+ggplot(dataStatsClean %>% group_by(idiom, pairMaxRange) %>% summarise(meanTime = mean(completionTimeSec), sd = sd(completionTimeSec), se = sd(completionTimeSec)/sqrt(length(completionTimeSec))), aes(x = pairMaxRange, y = meanTime, group = idiom)) + 
+  geom_point(aes(shape = idiom), size = 2) +
+  geom_line(aes(color = idiom)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 30, vjust = 0.5, hjust=1)) 
+```
+Bar : Large-Small 611.80 1 29.2378 6.402e-07 ***
+
+There is a strong crossover between (3D Bar and 2D Bar Surface | Large) and (3D Bar and 2D Bar Surface | Small). With a large condition, 2D Bar surface is slower than 3D, but much faster on the small condition.
+
+## Interaction **idiom x angular distance**
+```{r}
+time.interaction.idiom.angularDist = testInteractions(artlm(art.completionTimeSec, "idiom:pairAngularDist"), pairwise=c("idiom","pairAngularDist"), adjustment="bonferroni")
+
+time.interaction.idiom.angularDist
+```
+```{r}
+ggplot(dataStatsClean %>% mutate(pairAngularDist = as.factor( as.numeric(as.character(pairAngularDist)))) %>%  arrange(desc(pairAngularDist)) %>% group_by(idiom, pairAngularDist)  %>% summarise(meanTime = mean(completionTimeSec), sd = sd(completionTimeSec), se = sd(completionTimeSec)/sqrt(length(completionTimeSec))), aes(x = pairAngularDist, y = meanTime, group = idiom)) + 
+  geom_point(aes(shape = idiom), size = 2) +
+  geom_line(aes(color = idiom)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 30, vjust = 0.5, hjust=1)) 
+```
+
+Bar : 120-60 733.85 1 27.9690 3.698e-06 ***
+
+There is a significant crossover interaction between (2D Bar Surface and 3D Bar | 60) and (2D Bar Surface and 3D Bar | 120). This means 2D Bar Surface is faster than 3D on 60 degree but slower on 120 degree.
+
+## Interaction **relative size x max range**
+```{r}
+time.interaction.relativeSize.maxRange = testInteractions(artlm(art.completionTimeSec, "pairRelSize:pairMaxRange"), pairwise=c("pairRelSize","pairMaxRange"), adjustment="bonferroni")
+
+time.interaction.relativeSize.maxRange
+```
+```{r}
+ggplot(dataStatsClean %>% group_by(pairRelSize, pairMaxRange)  %>% summarise(meanTime = mean(completionTimeSec), sd = sd(completionTimeSec), se = sd(completionTimeSec)/sqrt(length(completionTimeSec))), aes(x = pairRelSize, y = meanTime, group = pairMaxRange)) + 
+  geom_point(aes(shape = pairMaxRange), size = 2) +
+  geom_line(aes(color = pairMaxRange)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 30, vjust = 0.5, hjust=1)) 
+```
+There is no crossover interactions.
+
+# Subjective Measures
+## Confidence
+```{r}
+data_q_conf %>% group_by(idiom) %>% summarise(mean = mean((confidence)), sd = sd(confidence), se = sd(confidence)/sqrt(length(confidence))) %>% arrange(-mean)
+```
+```{r}
+ggplot(data_q_conf %>% group_by(idiom) %>% summarise(mean = mean((confidence)), sd = sd(confidence), se = sd(confidence)/sqrt(length(confidence))), aes(x = as.factor(idiom), y = mean)) + 
+  geom_bar(stat="identity", fill = "#99d8c9") + 
+  geom_errorbar(aes(ymin = mean - 2 * se, ymax = mean + 2 * se), width = 0.25) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=1)) + xlab("Idioms") + ylab("Mean Confidence")
+```
+```{r}
+#test nomality
+shapiro.test(data_q_conf$confidence)
+```
+Not normal. Use non-parametric.
+```{r}
+#if not normal, use Kruskal-Wallis method
+kruskal.test(data = data_q_conf, confidence ~ idiom)
+```
+There is signficant difference. Try pairwise comparison.
+```{r}
+# if p < 0.05, check pair-wise comparison with Wilcox test
+  pairwise.wilcox.test(data_q_conf$confidence, data_q_conf$idiom, p.adjust.method = "bonferroni")
+```
+2D Bar Billboard and 3D Bar > 2D Bar Surface, Symbol Billboard, Symbol Surface
+## Aesthetic
+```{r}
+data_q_aes %>% group_by(idiom) %>% summarise(mean = mean(aesthetic), sd = sd(aesthetic), se = sd(aesthetic)/sqrt(length(aesthetic))) %>% arrange(-mean)
+```
+```{r}
+ggplot(data_q_aes %>% group_by(idiom) %>% summarise(mean = mean((aesthetic)), sd = sd(aesthetic), se = sd(aesthetic)/sqrt(length(aesthetic))), aes(x = as.factor(idiom), y = mean)) + 
+  geom_bar(stat="identity", fill = "#8da0cb") + 
+  geom_errorbar(aes(ymin = mean - 2 * se, ymax = mean + 2 * se), width = 0.25) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=1)) + xlab("Idioms") + ylab("Mean Aesthetic")
+```
+```{r}
+#test nomality
+shapiro.test(data_q_aes$aesthetic)
+```
+The data is not normal. Use non-parametric.
+```{r}
+#if not normal, use Kruskal-Wallis method
+kruskal.test(data = data_q_aes, aesthetic ~ idiom)
+```
+There is signficant difference. Try pairwise comparison.
+```{r}
+#As the p-value is less than the significance level 0.05, we can conclude that there are significant differences between the treatment groups.
+  # if p < 0.05, check pair-wise comparison with Wilcox test
+  pairwise.wilcox.test(data_q_aes$aesthetic, data_q_aes$idiom,
+                 p.adjust.method = "bonferroni")
+```
+
+
+- 3D Bar > 2D Bar Billboard, 2D Bar Surface, Symbol Surface, Symbol Billboard
+- Symbol Billboard, Symbol Surface, 2D Bar Billboard > 2D Bar Surface
+
+## Mental Load
+```{r}
+data_q_ml %>% group_by(idiom) %>% summarise(mean = mean(mentalload)) %>% arrange(mean)
+```
+```{r}
+ggplot(data_q_ml %>% group_by(idiom) %>% summarise(mean = mean(abs(mentalload)), sd = sd(mentalload), se = sd(mentalload)/sqrt(length(mentalload))), aes(x = as.factor(idiom), y = mean)) + 
+  geom_bar(stat="identity", fill = "white", color = "black") + 
+  geom_errorbar(aes(ymin = mean - 2 * se, ymax = mean + 2 * se), width = 0.25) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=1)) + ylab("Mean Mental Load") + xlab("Idioms")
+```
+```{r}
+#test nomality
+shapiro.test(data_q_ml$mentalload)
+```
+```{r}
+#if not normal, use Kruskal-Wallis method
+```
+Data distribution not normal. Use non-parametric.
+```{r}
+kruskal.test(data = data_q_ml, mentalload ~ idiom)
+```
+There is sig. difference. Do pairwise comparison.
+
+```{r}
+ pairwise.wilcox.test(data_q_ml$mentalload, data_q_ml$idiom,
+                 p.adjust.method = "bonferroni")
+```
+- 2D Bar Billboard, 3D Bar < 2D Bar Surface
+# User Interactions
+Remove ‘bad’ cs participants and create aggregated total angle per trial.
+```{r}
+#remove participants and first log data
+logDataClean = log_data %>% 
+                  filter(pid != 13 & pid != 36) %>% 
+                  group_by(prolificID, pid, pairID, geoPairID, idiom) %>%
+                  mutate(order = row_number()) %>%
+                  filter(order > 1)
+
+#create total angle per trial
+logDataCleanTotalAngle = logDataClean %>% 
+                                group_by(pid, idiom, pairID) %>% 
+                                summarise(totalAnglePerTrial = sum(angleFromPrev)) %>% 
+                                group_by(pid, idiom) %>% 
+                                mutate(pOrder = row_number())  
+
+#merge with raw data
+logDataCleanInteraction = merge(x = logDataCleanTotalAngle, y = data, by.x = c("pid", "idiom", "pairID"), by.y = c("pid", "idiom", "pairID"), all.y = F)
+
+#create z abs error
+logDataCleanInteraction = logDataCleanInteraction %>% 
+                                  mutate(absError = abs(error)) %>% 
+                                  mutate(zAbsError = (absError -     mean(dataStats$absError))/sd(dataStats$absError)) 
+
+#filter bad trials
+logDataCleanInteraction = logDataCleanInteraction %>% filter(zAbsError <= 3) %>% filter(completionTimeSec <= 11) 
+```
+
+## Globe Rotations Per Idiom
+Mean total rotation per trial per idiom
+```{r}
+dataAggLogIdiom = dataAggLogTrial %>% 
+                    group_by(idiom) %>% 
+                      dplyr::summarise(totalAnglePerTrial = sum(totalAngle), totalSample = sum(countSample), totalTrial = n(), sdTotalAngle = sd(totalAngle), sdMeanPerSecond = sd(meanAnglePerSec), meanFPS = mean(avgFPS), minFPS = min(avgFPS), maxFPS = max(avgFPS), sdFPS = sd(avgFPS)) %>%
+                        mutate(meanAnglePerSec = totalAnglePerTrial / totalSample * 0.1, seMeanPerSecond = sdMeanPerSecond / sqrt(totalSample), meanTotalAnglePerTrial = totalAnglePerTrial / totalTrial, seTotalAnglePerTrial = sdTotalAngle / sqrt(totalTrial))
+
+ggplot(dataAggLogIdiom, aes(x = idiom, y = meanTotalAnglePerTrial)) + 
+  geom_bar(stat="identity", fill = "white", color = "black") + 
+  geom_errorbar(aes(ymin = meanTotalAnglePerTrial - 2 * seTotalAnglePerTrial, ymax = meanTotalAnglePerTrial + 2 * seTotalAnglePerTrial), width = 0.25) + 
+  theme_bw()
+```
+Kruskal-Wallis test
+```{r}
+kruskal.test(totalAnglePerTrial ~ idiom, data = logDataCleanInteraction)
+```
+```{r}
+pairwise.wilcox.test(logDataCleanInteraction$totalAnglePerTrial, logDataCleanInteraction$idiom,
+                 p.adjust.method = "BH")
+```
+
+## Relationship Between Globe Rotation, Accuracy, and Time
+```{r}
+ggplot(logDataCleanInteraction, aes(totalAnglePerTrial)) + geom_histogram() + facet_grid(~idiom)
+```
+IQR of total angle per trial
+```{r}
+summary(logDataCleanInteraction$totalAnglePerTrial)
+```
+Distribution of total rotation per trial.
+```{r}
+ggplot(logDataCleanInteraction %>% mutate(logAngle = log2(totalAnglePerTrial)), aes(logAngle)) + geom_histogram() 
+```
+did not rotate or performed minimal rotation. There are outliers with very high total angle.
+
+Create total rotation per trial classification based on the IQR values.
+
+- No interaction (0 - 3)
+- Subtle interaction (3.472 - 96.522)
+- Moderate interaction (96.522 - 220.438)
+- Heavy interaction (> 220.438)
+```{r}
+#create classes based on total angle
+logDataCleanInteraction$interaction_class <- cut(logDataCleanInteraction$totalAnglePerTrial, 
+                   breaks=c(-Inf, 3.472, 96.522, 220.438, Inf), 
+                   labels=c("no","subtle","moderate", "heavy"))
+```
+Plot interaction type per participant per idiom
+
+```{r}
+ggplot(logDataCleanInteraction, aes(x=pOrder, y= 0)) + 
+  geom_point(stat = "identity", aes(color = interaction_class)) + 
+               facet_grid(pid~idiom) + 
+               scale_color_brewer(name = "Total Angle (degree)") + 
+               theme_minimal() + 
+               theme(axis.text.y = element_blank(), axis.title.y = element_blank(), axis.ticks.y = element_blank(), panel.grid = element_blank(), strip.text.y = element_text(angle=-15)) + xlab("trial")
+```
+that participants change their interaction strategy based on the visualisation idioms. Therefore, participant profiling is not an ideal way to analyse the interaction pattern. A more sensible approach would be categorising the interaction patterns globally
+
+### Visual Analysis
+The trend of interaction types of different idioms.
+```{r}
+ggplot(logDataCleanInteraction, aes(y = interaction_class)) + geom_bar(stat = "count", aes(fill = absError)) + facet_grid(~idiom) + coord_flip() + theme_minimal() + theme(axis.text.x = element_text(angle = 30)) + scale_fill_brewer(palette = 8) + ggtitle("Count of trial and interaction types")
+```
+Normalised stacked bar charts.
+```{r}
+ggplot(logDataCleanInteraction %>% group_by(idiom) %>% mutate(count_idiom = n()) %>% ungroup() %>% group_by(idiom, interaction_class, count_idiom) %>% summarise(count = n()) %>% mutate(percentage = count/count_idiom), 
+       aes(x = percentage, y = idiom, fill = interaction_class)) + geom_bar(stat = "identity") + scale_fill_brewer(palette = 7) +  theme_light()
+```
+Two billboarded idioms show different trend of interaction patterns. In the circle billboard, participants tend to not interact with the globe or perform subtle interaction whereas in the 2D bar billboard, each interaction class was used equally.
+
+Participants tend to perform moderate interaction with 3D bar, and a fair amount of heavy rotation as well as subtle interaction
+
+Circle surface shows more proportion of No interaction than 2D bar surface.
+
+Time of different interaction types
+```{r}
+ggplot(logDataCleanInteraction %>% group_by(idiom, interaction_class) %>% summarise(meanTimeSecond = mean(completionTimeSec), count = n()), aes(x = meanTimeSecond, y = interaction_class)) + geom_bar(stat = "identity") + facet_grid(~idiom) + coord_flip() + theme_minimal() + theme(axis.text.x = element_text(angle = 30)) 
+```
+Except the 3D bar, the time and interaction class show positive linear correlation. It indicates that the participants require more time to rotate the globe, not to stare at the visualisation.
+```{r}
+sumSE = Rmisc::summarySE(logDataCleanInteraction, measurevar="absError", groupvars=c("idiom", "interaction_class"))
+userInteractionErrorPlotData = logDataCleanInteraction %>% group_by(idiom, interaction_class) %>% summarise(meanAbsError = mean(absError), count = n())
+
+
+userInteractionErrorPlotData =  dplyr::inner_join(x = sumSE, y = userInteractionErrorPlotData, by = c("idiom", "interaction_class"))
+
+
+ggplot(userInteractionErrorPlotData, aes(x = meanAbsError, y = interaction_class)) + geom_bar(stat = "identity") + facet_wrap(~idiom, nrow = 1) + theme_minimal() + geom_errorbar(aes(xmin = meanAbsError - ci, xmax = meanAbsError + ci), width = 0.2, size = 0.5) + coord_flip() + theme(axis.text.x = element_text(angle = 30)) 
+```
+### Correlation
+#### General
+```{r}
+ggplot2::ggplot(logDataCleanInteraction, ggplot2::aes(y = totalAnglePerTrial, x = completionTimeSec)) + ggplot2::geom_point(alpha=0.5) + ggplot2::theme_light() + ggplot2::geom_smooth(method = "lm") + ggplot2::ylab("Total rotation per trial (degree)") 
+```
+```{r}
+ggplot2::ggplot(logDataCleanInteraction, ggplot2::aes(y = totalAnglePerTrial, x = completionTimeSec)) + ggplot2::geom_point(alpha=0.5) + ggplot2::theme_light() + ggplot2::geom_smooth(method = "lm") + ggplot2::ylab("Total rotation per trial (degree)") + ggplot2::facet_wrap(~idiom)
+```
+```{r}
+ggplot2::ggplot(logDataCleanInteraction, ggplot2::aes(y = totalAnglePerTrial, x = absError)) + ggplot2::geom_point(alpha=0.5) + ggplot2::theme_light() + ggplot2::geom_smooth(method = "lm") + ggplot2::ylab("Total rotation per trial (degree)") + ggplot2::facet_wrap(~idiom)
+```
+```{r}
+cor.test(logDataCleanInteraction$totalAnglePerTrial, logDataCleanInteraction$absError, method = "kendall")
+```
+```{r}
+cor.test(logDataCleanInteraction$totalAnglePerTrial, logDataCleanInteraction$completionTimeSec, method = "kendall")
+```
+The correlation is analysed per idiom because of the variation of the interaction style per idiom.
+
+Source: http://www.sthda.com/english/wiki/correlation-test-between-two-variables-in-r
+
+Non-parametric correlation using Kendall.
+```{r}
+logDataCleanInteraction2DBarBillboard = logDataCleanInteraction %>% filter(idiom == "2D Bar Billboard")
+logDataCleanInteraction2DBarSurface = logDataCleanInteraction %>% filter(idiom == "2D Bar Surface")
+logDataCleanInteraction3DBar = logDataCleanInteraction %>% filter(idiom == "3D Bar")
+logDataCleanInteractionCircleBillboard = logDataCleanInteraction %>% filter(idiom == "Circle Billboard")
+logDataCleanInteractionCircleSurface = logDataCleanInteraction %>% filter(idiom == "Circle Surface")
+```
+
+#### 2D Bar Billboard
+```{r}
+cor.test(logDataCleanInteraction2DBarBillboard$totalAnglePerTrial, logDataCleanInteraction2DBarBillboard$absError, method = "kendall")
+```
+#### 2D Bar Surface
+```{r}
+cor.test(logDataCleanInteraction2DBarSurface$totalAnglePerTrial, logDataCleanInteraction2DBarSurface$absError, method = "kendall")
+```
+#### 3D Bar
+```{r}
+cor.test(logDataCleanInteraction3DBar$totalAnglePerTrial, logDataCleanInteraction3DBar$absError, method = "kendall")
+```
+#### Circle Billboard
+```{r}
+cor.test(logDataCleanInteractionCircleBillboard$totalAnglePerTrial, logDataCleanInteractionCircleBillboard$absError, method = "kendall")
+```
+#### Circle Surface
+```{r}
+cor.test(logDataCleanInteractionCircleBillboard$totalAnglePerTrial, logDataCleanInteractionCircleBillboard$absError, method = "kendall")
+```
+
+## Frame per Second
+Distribution
+```{r}
+ggplot2::ggplot(dataAggLogTrial, ggplot2::aes(x = avgFPS)) + ggplot2::geom_histogram(bins=10) + ggplot2::theme_bw()
+```
+```{r}
+ggplot2::ggplot(dataAggLogTrial, ggplot2::aes(x = avgFPS)) + ggplot2::geom_boxplot() + ggplot2::theme_bw()
+```
+```{r}
+ggplot2::ggplot(dataAggLogTrial %>% filter(avgFPS < 40), aes(x = avgFPS)) + ggplot2::geom_histogram(bins=10) + ggplot2::theme_bw()
+```
+```{r}
+nrow(dataAggLogTrial %>% filter(avgFPS < 40)) / nrow(dataAggLogTrial) * 100
+```
+

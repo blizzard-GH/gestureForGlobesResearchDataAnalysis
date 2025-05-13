@@ -1,0 +1,13 @@
+UserID,Timestamp,Mentally_demanding,Physically_demanding
+1,23/4/2025 15:57,5. Neither low nor high mental effort,2. Light
+2,23/4/2025 17:04,3. Low mental effort,0. No exertion
+3,24/4/2025 11:35,6. Rather high mental effort,4. Somewhat difficult
+4,25/4/2025 11:53,"1. Very, very low mental effort",0.5. Noticable
+5,25/4/2025 19:38,6. Rather high mental effort,6
+6,26/4/2025 9:50,6. Rather high mental effort,4. Somewhat difficult
+7,26/4/2025 10:59,3. Low mental effort,1. Very light
+8,30/4/2025 16:23,5. Neither low nor high mental effort,3. Moderate
+9,30/4/2025 17:49,2. Very low mental effort,0. No exertion
+10,1/5/2025 18:03,5. Neither low nor high mental effort,1. Very light
+11,2/5/2025 20:51,"9. Very, very high mental effort",9. Almost maximal
+12,6/5/2025 9:27,7. High mental effort,7. Very difficult
