@@ -368,6 +368,11 @@ data.positioning.long <- data.positioning %>%
 data.positioning.long.art_anova <- art(Score ~ positionCondition * ExertionType + (1|UserID), data = data.positioning.long)
 anova(data.positioning.long.art_anova)
 
+# 	•	Main effect of positionCondition: F(1, 33) = 12.55, p = 0.0012 This is statistically significant, indicating that task positioning condition (e.g., rotating vs non-rotating globe) has a significant effect on the overall exertion score (which includes cognitive load and physical exertion).
+#   •	Main effect of ExertionType: F(1, 33) = 12.81, p = 0.0011 Also statistically significant, meaning that there is a clear difference between cognitive load (PAAS) and physical exertion (BORG) scores regardless of the positioning condition.
+# 	•	Interaction effect (positionCondition × ExertionType): F(1, 33) = 0.18, p = 0.6774, suggesting that the effect of positioning condition does not depend on the type of exertion, and vice versa. The differences in PAAS and BORG scores are consistent across both positioning conditions.
+# Both the positioning condition and type of exertion significantly influence the exertion score independently, but there is no interaction effect. This means that while both factors matter, their effects do not amplify or diminish each other. For example, rotating vs non-rotating globes affects scores, and cognitive vs physical exertion shows distinct levels, but the difference between PAAS and BORG scores remains similar across positioning conditions.
+
 ggplot(data.positioning.long, aes(x = positionCondition, y = Score, fill = ExertionType)) +
   geom_boxplot(width = 0.1, position = position_dodge(0.8)) +
   labs(
@@ -608,10 +613,13 @@ data.rotating.long <- data.rotating %>%
   ) %>%
   group_by(UserID, rotationCondition, Measure)
   
-data.rotating.long
-
 data.rotating.long.art_anova <- art(Score ~ rotationCondition * ExertionType + (1|UserID), data = data.rotating.long)
-anova(data.positioning.long.art_anova)
+anova(data.rotating.long.art_anova)
+
+# 	•	Main effect of rotationCondition: F(1, 33) = 4.28, p = 0.0466 This is statistically significant at the 0.05 level, indicating that rotating vs non-rotating globe conditions have a meaningful impact on participants’ perceived exertion scores (cognitive or physical).
+#	  •	Main effect of ExertionType: F(1, 33) = 20.75, p < 0.001 This is highly significant,  showing a strong difference between cognitive load (PAAS) and physical exertion (BORG) scores, regardless of the globe rotation condition.
+#  	•	Interaction effect (rotationCondition × ExertionType): F(1, 33) = 0.016, p = 0.8990 Not significant. Suggesting that the difference between cognitive and physical exertion is consistent across both rotation conditions. The type of exertion does not change depending on whether the globe was rotating or not.
+# Both rotation condition and exertion type have independent effects on perceived exertion. Participants reported different exertion levels between rotating and non-rotating globes, and also between cognitive and physical demands. However, there is no interaction, meaning the relative difference between PAAS and BORG remains stable across rotation types.
 
 ggplot(data.rotating.long, aes(x = rotationCondition, y = Score, fill = ExertionType)) +
   geom_boxplot(width = 0.1, position = position_dodge(0.8)) +
@@ -850,6 +858,11 @@ data.scale.long <- data.scale %>%
   
 data.scale.long.art_anova <- art(Score ~ scaleCondition * ExertionType + (1|UserID), data = data.scale.long)
 anova(data.scale.long.art_anova)
+
+# 	•	Main effect of scaleCondition: F(1, 33) = 1.36, p = 0.2521 Not statistically significant. This suggests that the scaling condition (e.g. scaled vs not scaled globe) did not have a meaningful effect on exertion scores overall. 
+#  	•	Main effect of ExertionType: F(1, 33) = 55.27, p < 0.001 → Highly significant. This shows a strong difference between cognitive load (PAAS) and physical exertion (BORG) scores, regardless of the scale condition.
+# 	•	Interaction (scaleCondition × ExertionType): F(1, 33) = 0.084, p = 0.7735. This means the difference between PAAS and BORG scores does not vary depending on whether scaling was involved.
+# Only the type of exertion (cognitive vs physical) had a significant impact on participant scores. The scale condition had no effect, nor did it change the relationship between exertion types. Participants consistently rated cognitive and physical exertion differently, but this pattern was stable across both scaled and non-scaled conditions.
 
 ggplot(data.scale.long, aes(x = scaleCondition, y = Score, fill = ExertionType)) +
   geom_boxplot(width = 0.1, position = position_dodge(0.8)) +
