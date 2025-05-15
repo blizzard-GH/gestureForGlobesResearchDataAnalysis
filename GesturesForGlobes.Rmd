@@ -286,15 +286,103 @@ anova(data.positioning.matched.art)
 
 # There were significant main effects of both distance and direction on mean accuracy, indicating that participants’ accuracy was influenced independently by how far the task was and from which direction it came. However, positionCondition had no significant effect, and no interaction terms reached statistical significance. This suggests that the combined effects of position, distance, and direction do not differentially impact accuracy beyond the main effects of distance and direction alone.
 
-ggplot(data.positioning.matched.accuracy_avg.long, aes(x = positionCondition, y = mean_accuracy, group = UserID)) +
-  geom_line(aes(color = as.factor(UserID)),  linewidth = 1, alpha = 0.6) +
-  geom_point(size = 3) +
-  facet_wrap(~ distance + direction) + 
-  labs(title = "Paired Accuracy by Globe Behaviour, Globes' Distance and Direction",
-       x = "Behaviour",
-       y = "Match Accuracy") +
+# Plotting for position behaviours
+data.positioning.matched.accuracy_avg.long %>%
+  group_by(positionCondition) %>%
+  summarise(
+    mean_mean_accuracy = mean(mean_accuracy, na.rm = TRUE),
+    se = sd(mean_accuracy, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  mutate(positionCondition = case_when(
+    positionCondition == "rotatingGlobe" ~ "Rotating Globe",
+    positionCondition == "nonRotatingGlobe" ~ "Non Rotating Globe",
+    TRUE ~ as.character(positionCondition))) %>%
+  ggplot(aes(x = positionCondition, y = mean_mean_accuracy, fill = positionCondition)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_accuracy - ci, ymax = mean_mean_accuracy + ci), width = 0.2) +
+  labs(
+    title = "Mean Match Accuracy by Globe Behaviour",
+    x = "Globe Behaviour",
+    y = "Mean Accuracy",
+    fill = "Globe Behaviour"
+  ) +
   theme_minimal() +
-  theme(strip.text = element_text(size = 12, face = "bold"))
+  theme(axis.text.x = element_blank())
+
+# Plotting for distance conditions
+data.positioning.matched.accuracy_avg.long %>%
+  group_by(distance) %>%
+  summarise(
+    mean_mean_accuracy = mean(mean_accuracy, na.rm = TRUE),
+    se = sd(mean_accuracy, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = distance, y = mean_mean_accuracy, fill = distance)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_accuracy - ci, ymax = mean_mean_accuracy + ci), width = 0.2) +
+  labs(
+    title = "Mean Match Accuracy by Globe Distance",
+    x = "Globe Distance",
+    y = "Mean Accuracy",
+    fill = "Globe Distance"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
+
+# Plotting for direction conditions
+data.positioning.matched.accuracy_avg.long %>%
+  group_by(direction) %>%
+  summarise(
+    mean_mean_accuracy = mean(mean_accuracy, na.rm = TRUE),
+    se = sd(mean_accuracy, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = direction, y = mean_mean_accuracy, fill = direction)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_accuracy - ci, ymax = mean_mean_accuracy + ci), width = 0.2) +
+  labs(
+    title = "Mean Match Accuracy by Globe Direction",
+    x = "Globe Direction",
+    y = "Mean Accuracy",
+    fill = "Globe Direction"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
+
+# Plotting for both Position Conditions and Behaviours
+data.positioning.matched.accuracy_avg.long %>%
+  group_by(positionCondition, distance, direction) %>%
+  summarise(
+    mean_mean_accuracy = mean(mean_accuracy, na.rm = TRUE),
+    se = sd(mean_accuracy, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  mutate(positionCondition = case_when(
+    positionCondition == "rotatingGlobe" ~ "Rotating Globe",
+    positionCondition == "nonRotatingGlobe" ~ "Non Rotating Globe",
+    TRUE ~ as.character(positionCondition))) %>%
+  ggplot(aes(x = positionCondition, y = mean_mean_accuracy, fill = positionCondition)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_accuracy - ci, ymax = mean_mean_accuracy + ci),
+                width = 0.2) +
+  facet_wrap(~ distance + direction) +
+  labs(
+    title = "Mean Match Accuracy by Globe Behaviour, Distance, and Direction",
+    x = "Globe Positioning Behaviour",
+    y = "Mean Accuracy",
+    fill = "Globe Positioning Behaviour"
+  ) +
+  theme_minimal() +
+    theme(
+    axis.text.x = element_blank()
+  )
+
+# Boxplots for globe behaviour and conditions
 
 ggplot(data.positioning.matched.accuracy_avg.long, aes(x = positionCondition, y = mean_accuracy)) +
   geom_boxplot(outlier.shape = NA, fill = "lightblue") +
@@ -353,17 +441,103 @@ anova(data.positioning.taskCompletion_avg.art)
 # 
 # Only direction had a statistically significant effect on average task completion time, indicating that the direction from which the task was approached meaningfully influenced how long participants took to complete it. Other factors—positionCondition, distance, and all interaction terms—did not have significant effects. This suggests that regardless of position or distance, direction alone may account for differences in task completion time in this context.
 
-ggplot(data.positioning.taskCompletion_avg.long, aes(x = positionCondition, y = avg_completion_time, group = UserID)) +
-  geom_line(aes(color = as.factor(UserID)), linewidth = 1, alpha = 0.6) +
-  geom_point(size = 3) +
-  facet_wrap(~ distance + direction) + 
+# Plotting for positioning behaviour
+data.positioning.taskCompletion_avg.long %>%
+  group_by(positionCondition) %>%
+  summarise(
+    mean_mean_time = mean(avg_completion_time, na.rm = TRUE),
+    se = sd(avg_completion_time, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  mutate(positionCondition = case_when(
+    positionCondition == "rotatingGlobe" ~ "Rotating Globe",
+    positionCondition == "nonRotatingGlobe" ~ "Non Rotating Globe",
+    TRUE ~ as.character(positionCondition))) %>%
+  ggplot(aes(x = positionCondition, y = mean_mean_time, fill = positionCondition)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_time - ci, ymax = mean_mean_time + ci), width = 0.2) +
   labs(
-    title = "Paired Task Completion Time by Behaviour, Distance, and Direction",
-    x = "Behaviour",
-    y = "Completion Time (minutes)",
-    color = "UserID"
+    title = "Mean Match Accuracy by Globe Behaviour",
+    x = "Globe Behaviour",
+    y = "Average Completion Time",
+    fill = "Globe Behaviour"
   ) +
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
+
+# Plotting for distance factors
+data.positioning.taskCompletion_avg.long %>%
+  group_by(distance) %>%
+  summarise(
+    mean_mean_time = mean(avg_completion_time, na.rm = TRUE),
+    se = sd(avg_completion_time, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = distance, y = mean_mean_time, fill = distance)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_time - ci, ymax = mean_mean_time + ci), width = 0.2) +
+  labs(
+    title = "Mean Match Accuracy by Globe Distance Factors",
+    x = "Globe Distance",
+    y = "Average Completion Time",
+    fill = "Globe Distance"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
+
+# Plotting for direction factors
+data.positioning.taskCompletion_avg.long %>%
+  group_by(direction) %>%
+  summarise(
+    mean_mean_time = mean(avg_completion_time, na.rm = TRUE),
+    se = sd(avg_completion_time, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = direction, y = mean_mean_time, fill = direction)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_time - ci, ymax = mean_mean_time + ci), width = 0.2) +
+  labs(
+    title = "Mean Match Accuracy by Globe Direction Factors",
+    x = "Globe Direction",
+    y = "Average Completion Time",
+    fill = "Globe Direction"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
+
+# Plotting for both Position Factors and Technique
+data.positioning.taskCompletion_avg.long %>%
+  group_by(positionCondition, distance, direction) %>%
+  summarise(
+    mean_mean_time = mean(avg_completion_time, na.rm = TRUE),
+    se = sd(avg_completion_time, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  mutate(positionCondition = case_when(
+    positionCondition == "rotatingGlobe" ~ "Rotating Globe",
+    positionCondition == "nonRotatingGlobe" ~ "Non Rotating Globe",
+    TRUE ~ as.character(positionCondition))) %>%
+  ggplot(aes(x = positionCondition, y = mean_mean_time, fill = positionCondition)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_time - ci, ymax = mean_mean_time + ci),
+                width = 0.2) +
+  facet_wrap(~ distance + direction) +
+  labs(
+    title = "Mean Match Accuracy by Globe Behaviour, Distance, and Direction Factors",
+    x = "Globe Positioning Behaviour",
+    y = "Average Completion Time",
+    fill = "Globe Positioning Behaviour"
+  ) +
+  theme_minimal() +
+    theme(
+    axis.text.x = element_blank()
+  )
+
+# Boxplots for Globe Behaviour, Distance, and Direction Factors
 
 ggplot(data.positioning.taskCompletion_avg.long, aes(x = positionCondition, y = avg_completion_time)) +
   geom_boxplot(outlier.shape = NA, fill = "lightblue") +
@@ -416,7 +590,28 @@ ggplot(data.positioning.long, aes(x = positionCondition, y = Score, fill = Exert
   labs(
     x = "Position Condition",
     y = "Score",
-    title = "Distribution of Scores by Behaviour and Exertion Type"
+    title = "Distribution of Exertion Scores by Behaviour and Exertion Type"
+  ) +
+  theme_minimal()
+
+data.positioning.long %>%
+  group_by(positionCondition, ExertionType) %>%
+  summarise(
+    mean_score = mean(Score),
+    sd = sd(Score),
+    n = n(),
+    ci = qt(0.975, df = n - 1) * sd / sqrt(n),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = positionCondition, y = mean_score, fill = ExertionType)) +
+  geom_col(position = position_dodge(width = 0.7), width = 0.6) +
+  geom_errorbar(aes(ymin = mean_score - ci, ymax = mean_score + ci),
+                position = position_dodge(width = 0.7), width = 0.2) +
+  labs(
+    x = "Position Condition",
+    y = "Mean Score (95% CI)",
+    fill = "Exertion Type",
+    title = "Mean Score by Position Condition and Exertion Type"
   ) +
   theme_minimal()
 ```
@@ -573,19 +768,82 @@ anova(data.rotating.matched.art)
 
 # The ART ANOVA revealed significant main effects of both rotation condition and complexity on accuracy. Rotation condition had a modest but significant effect (p = 0.038), while complexity showed a strong influence (p < 0.001). However, there was no significant interaction between rotation and complexity (p = 0.62), indicating that the effects of each factor on accuracy are independent and do not influence each other.
 
-
-ggplot(data.rotating.matched.accuracy_avg.long, aes(x = rotationCondition, y = mean_accuracy, group = UserID)) +
-  geom_line(aes(color = as.factor(UserID)), linewidth = 1, alpha = 0.6) +
-  geom_point(size = 3) +
-  facet_wrap(~ complexity) + 
+# Plotting for rotation technique
+data.rotating.matched.accuracy_avg.long %>%
+  group_by(rotationCondition) %>%
+  summarise(
+    mean_mean_accuracy = mean(mean_accuracy, na.rm = TRUE),
+    se = sd(mean_accuracy, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  mutate(rotationCondition = case_when(
+    rotationCondition == "oneHanded" ~ "One Handed",
+    rotationCondition == "twoHanded" ~ "Two Handed",
+    TRUE ~ as.character(rotationCondition))) %>%
+  ggplot(aes(x = rotationCondition, y = mean_mean_accuracy, fill = rotationCondition)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_accuracy - ci, ymax = mean_mean_accuracy + ci), width = 0.2) +
   labs(
-    title = "Paired Task Match Accuracy by Technique and Complexity",
-    x = "Technique",
-    y = "Accuracy",
-    color = "UserID"
+    title = "Mean Match Accuracy by Globe Rotating Techniques",
+    x = "Globe Technique",
+    y = "Mean Accuracy",
+    fill = "Globe Technique"
   ) +
   theme_minimal() +
-  theme(strip.text = element_text(size = 12, face = "bold"))
+  theme(axis.text.x = element_blank())
+
+# Plotting for complexity factor
+data.rotating.matched.accuracy_avg.long %>%
+  group_by(complexity) %>%
+  summarise(
+    mean_mean_accuracy = mean(mean_accuracy, na.rm = TRUE),
+    se = sd(mean_accuracy, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = complexity, y = mean_mean_accuracy, fill = complexity)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_accuracy - ci, ymax = mean_mean_accuracy + ci), width = 0.2) +
+  labs(
+    title = "Mean Match Accuracy by globe rotation techniques and factors",
+    x = "Globe Techniques",
+    y = "Mean Accuracy",
+    fill = "Complexity Factors"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
+
+# Plotting for both rotation factors and techniques
+data.rotating.matched.accuracy_avg.long %>%
+  group_by(rotationCondition, complexity) %>%
+  summarise(
+    mean_mean_accuracy = mean(mean_accuracy, na.rm = TRUE),
+    se = sd(mean_accuracy, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  mutate(rotationCondition = case_when(
+    rotationCondition == "oneHanded" ~ "One Handed",
+    rotationCondition == "twoHanded" ~ "Two Handed",
+    TRUE ~ as.character(rotationCondition))) %>%
+  ggplot(aes(x = rotationCondition, y = mean_mean_accuracy, fill = rotationCondition)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_accuracy - ci, ymax = mean_mean_accuracy + ci),
+                width = 0.2) +
+  facet_wrap(~ complexity) +
+  labs(
+    title = "Mean Match Accuracy by Globe Rotating Techniques and Complexity Factors",
+    x = "rotation Condition",
+    y = "Mean Accuracy",
+    fill = "rotation Condition"
+  ) +
+  theme_minimal() +
+    theme(
+    axis.text.x = element_blank()
+  )
+
+# Boxplots for rotation techniques and condition
 
 ggplot(data.rotating.matched.accuracy_avg.long, aes(x = rotationCondition, y = mean_accuracy)) +
   geom_boxplot(outlier.shape = NA, fill = "lightblue") +
@@ -636,19 +894,82 @@ anova(data.rotating.taskCompletion_avg.art)
 	# •	complexity: F(1, 33) = 37.75, p < 0.0001 (***) Statistically significant — complexity strongly affects completion time
 	# •	rotationCondition × complexity: F(1, 33) = 2.36, p = 0.1344 Not significant — no evidence of interaction between rotation and complexity
 
-ggplot(data.rotating.taskCompletion_avg.long, 
-       aes(x = rotationCondition, y = avg_completion_time, group = UserID)) +
-  geom_line(aes(color = as.factor(UserID)), linewidth = 1, alpha = 0.6) +
-  geom_point(size = 3) +
-  facet_wrap(~ complexity) +
+# Plotting for rotating techniques
+data.rotating.taskCompletion_avg.long %>%
+  group_by(rotationCondition) %>%
+  summarise(
+    mean_mean_time = mean(avg_completion_time, na.rm = TRUE),
+    se = sd(avg_completion_time, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  mutate(rotationCondition = case_when(
+    rotationCondition == "oneHanded" ~ "One Handed",
+    rotationCondition == "twoHanded" ~ "Two Handed",
+    TRUE ~ as.character(rotationCondition))) %>%
+  ggplot(aes(x = rotationCondition, y = mean_mean_time, fill = rotationCondition)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_time - ci, ymax = mean_mean_time + ci), width = 0.2) +
   labs(
-    title = "Paired Task Completion Time by Technique and Complexity",
-    x = "Technique",
-    y = "Average Completion Time (minutes)",
-    color = "UserID"
+    title = "Mean Match Accuracy by Globe Rotating Techniques",
+    x = "Globe Rotating Techniques",
+    y = "Average Completion Time",
+    fill = "Globe Rotating Techniques"
   ) +
   theme_minimal() +
-  theme(strip.text = element_text(size = 12, face = "bold"))
+  theme(axis.text.x = element_blank())
+
+# Plotting for complexity factors
+data.rotating.taskCompletion_avg.long %>%
+  group_by(complexity) %>%
+  summarise(
+    mean_mean_time = mean(avg_completion_time, na.rm = TRUE),
+    se = sd(avg_completion_time, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = complexity, y = mean_mean_time, fill = complexity)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_time - ci, ymax = mean_mean_time + ci), width = 0.2) +
+  labs(
+    title = "Mean Match Accuracy by Globe Complexity Factors",
+    x = "Globe Complexity",
+    y = "Average Completion Time",
+    fill = "Globe Complexity"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
+
+# Plotting for both rotation Factors and Technique
+data.rotating.taskCompletion_avg.long %>%
+  group_by(rotationCondition, complexity) %>%
+  summarise(
+    mean_mean_time = mean(avg_completion_time, na.rm = TRUE),
+    se = sd(avg_completion_time, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  mutate(rotationCondition = case_when(
+    rotationCondition == "oneHanded" ~ "One Handed",
+    rotationCondition == "twoHanded" ~ "Two Handed",
+    TRUE ~ as.character(rotationCondition))) %>%
+  ggplot(aes(x = rotationCondition, y = mean_mean_time, fill = rotationCondition)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_time - ci, ymax = mean_mean_time + ci),
+                width = 0.2) +
+  facet_wrap(~ complexity) +
+  labs(
+    title = "Mean Match Accuracy by Globe Rotating Techniques, Complexity Factors",
+    x = "Globe rotating techniques",
+    y = "Average Completion Time",
+    fill = "Globe rotating techniques"
+  ) +
+  theme_minimal() +
+    theme(
+    axis.text.x = element_blank()
+  )
+
+# Boxplots for rotation techniques and complexity factors
 
 ggplot(data.rotating.taskCompletion_avg.long, aes(x = rotationCondition, y = avg_completion_time)) +
   geom_boxplot(outlier.shape = NA, fill = "lightblue") +
@@ -853,16 +1174,82 @@ anova(data.scale.matched.art)
 
 # There were no statistically significant effects of either scale condition, zoom direction, or their interaction on mean accuracy. This suggests that participants’ accuracy was not influenced by how the globe was scaled or zoomed, nor by the combination of these two factors.
 
-ggplot(data.scale.matched.accuracy_avg.long, aes(x = scaleCondition, y = mean_accuracy, group = UserID)) +
-  geom_line(aes(color = as.factor(UserID)), linewidth = 1, alpha = 0.6) +
-  geom_point(size = 3) +
-  facet_wrap(~ zoomDirection) + 
-  labs(title = "Paired Accuracy by Globe Behaviour and Zoom Direction",
-       x = "Behaviour",
-       y = "Match Accuracy",
-      color = "UserID") +
+# Plotting for scale behaviours
+data.scale.matched.accuracy_avg.long %>%
+  group_by(scaleCondition) %>%
+  summarise(
+    mean_mean_accuracy = mean(mean_accuracy, na.rm = TRUE),
+    se = sd(mean_accuracy, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  mutate(scaleCondition = case_when(
+    scaleCondition == "movingGlobe" ~ "Moving Globe",
+    scaleCondition == "nonMovingGlobe" ~ "Non Moving Globe",
+    TRUE ~ as.character(scaleCondition))) %>%
+  ggplot(aes(x = scaleCondition, y = mean_mean_accuracy, fill = scaleCondition)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_accuracy - ci, ymax = mean_mean_accuracy + ci), width = 0.2) +
+  labs(
+    title = "Mean Match Accuracy by Globe Behaviour",
+    x = "Globe Behaviour",
+    y = "Mean Accuracy",
+    fill = "Globe Behaviour"
+  ) +
   theme_minimal() +
-  theme(strip.text = element_text(size = 12, face = "bold"))
+  theme(axis.text.x = element_blank())
+
+# Plotting for direction conditions
+data.scale.matched.accuracy_avg.long %>%
+  group_by(zoomDirection) %>%
+  summarise(
+    mean_mean_accuracy = mean(mean_accuracy, na.rm = TRUE),
+    se = sd(mean_accuracy, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = zoomDirection, y = mean_mean_accuracy, fill = zoomDirection)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_accuracy - ci, ymax = mean_mean_accuracy + ci), width = 0.2) +
+  labs(
+    title = "Mean Match Accuracy by Globe Zoom Direction Factors",
+    x = "Globe Zoom Direction",
+    y = "Mean Accuracy",
+    fill = "Globe Direction"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
+
+# Plotting for both scale Conditions and Behaviours
+data.scale.matched.accuracy_avg.long %>%
+  group_by(scaleCondition, zoomDirection) %>%
+  summarise(
+    mean_mean_accuracy = mean(mean_accuracy, na.rm = TRUE),
+    se = sd(mean_accuracy, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  mutate(scaleCondition = case_when(
+    scaleCondition == "movingGlobe" ~ "Moving Globe",
+    scaleCondition == "nonMovingGlobe" ~ "Non Moving Globe",
+    TRUE ~ as.character(scaleCondition))) %>%
+  ggplot(aes(x = scaleCondition, y = mean_mean_accuracy, fill = scaleCondition)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_accuracy - ci, ymax = mean_mean_accuracy + ci),
+                width = 0.2) +
+  facet_wrap(~ zoomDirection) +
+  labs(
+    title = "Mean Match Accuracy by Globe Behaviour, and Zoom Direction Factors",
+    x = "Globe scale Behaviour",
+    y = "Mean Accuracy",
+    fill = "Globe scale Behaviour"
+  ) +
+  theme_minimal() +
+    theme(
+    axis.text.x = element_blank()
+  )
+
+# Boxplots for globe behaviour and conditions
 
 ggplot(data.scale.matched.accuracy_avg.long, aes(x = scaleCondition, y = mean_accuracy)) +
   geom_boxplot(outlier.shape = NA, fill = "lightblue") +
@@ -916,23 +1303,88 @@ anova(data.scale.matched.art)
 # The analysis revealed no statistically significant effects of scaleCondition, zoomDirection, or their interaction on mean accuracy. All p-values are well above the common alpha level of 0.05, indicating that neither the type of scaling nor the zoom direction had a meaningful impact on participants’ accuracy. Additionally, the lack of a significant interaction suggests that the combined effect of scaling and zoom direction does not influence accuracy either.
 
 
-ggplot(data.scale.taskCompletion_avg.long, aes(x = scaleCondition, y = avg_completion_time, group = UserID)) +
-  geom_line(aes(color = as.factor(UserID)), linewidth = 1, alpha = 0.6) +
-  geom_point(size = 3) +
-  facet_wrap(~ zoomDirection) + 
+# Plotting for scale behaviour
+data.scale.taskCompletion_avg.long %>%
+  group_by(scaleCondition) %>%
+  summarise(
+    mean_mean_time = mean(avg_completion_time, na.rm = TRUE),
+    se = sd(avg_completion_time, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  mutate(scaleCondition = case_when(
+    scaleCondition == "movingGlobe" ~ "Moving Globe",
+    scaleCondition == "nonmovingGlobe" ~ "Non Moving Globe",
+    TRUE ~ as.character(scaleCondition))) %>%
+  ggplot(aes(x = scaleCondition, y = mean_mean_time, fill = scaleCondition)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_time - ci, ymax = mean_mean_time + ci), width = 0.2) +
   labs(
-    title = "Paired Task Completion Time by Behaviour and Zoom Direction",
-    x = "Behaviour",
-    y = "Completion Time (minutes)",
-    color = "UserID"
+    title = "Mean Match Accuracy by Globe Behaviour",
+    x = "Globe Behaviour",
+    y = "Average Completion Time",
+    fill = "Globe Behaviour"
   ) +
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
+
+# Plotting for distance factors
+data.scale.taskCompletion_avg.long %>%
+  group_by(zoomDirection) %>%
+  summarise(
+    mean_mean_time = mean(avg_completion_time, na.rm = TRUE),
+    se = sd(avg_completion_time, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = zoomDirection, y = mean_mean_time, fill = zoomDirection)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_time - ci, ymax = mean_mean_time + ci), width = 0.2) +
+  labs(
+    title = "Mean Match Accuracy by Globe Distance Factors",
+    x = "Globe Distance",
+    y = "Average Completion Time",
+    fill = "Globe Distance"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
+
+# Plotting for both Position Factors and Technique
+data.scale.taskCompletion_avg.long %>%
+  group_by(scaleCondition, zoomDirection) %>%
+  summarise(
+    mean_mean_time = mean(avg_completion_time, na.rm = TRUE),
+    se = sd(avg_completion_time, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  mutate(scaleCondition = case_when(
+    scaleCondition == "movingGlobe" ~ "Moving Globe",
+    scaleCondition == "nonMovingGlobe" ~ "Non Moving Globe",
+    TRUE ~ as.character(scaleCondition))) %>%
+  ggplot(aes(x = scaleCondition, y = mean_mean_time, fill = scaleCondition)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_time - ci, ymax = mean_mean_time + ci),
+                width = 0.2) +
+  facet_wrap(~ zoomDirection) +
+  labs(
+    title = "Mean Match Accuracy by Globe Behaviour, and Zoom Direction Factors",
+    x = "Globe Positioning Behaviour",
+    y = "Average Completion Time",
+    fill = "Globe Positioning Behaviour"
+  ) +
+  theme_minimal() +
+    theme(
+    axis.text.x = element_blank()
+  )
+
+# Boxplots for Task Completion Time and Zoom Direction Factors
 
 ggplot(data.scale.taskCompletion_avg.long, aes(x = scaleCondition, y = avg_completion_time)) +
   geom_boxplot(outlier.shape = NA, fill = "lightblue") +
   geom_jitter(width = 0.1, size = 2, alpha = 0.7) +
   facet_wrap(~ zoomDirection) + 
-  labs(title = "Boxplots of Task Completion Time by Globe's Behaviour and Zoom Direction",
+  labs(title = "Boxplots of Task Completion Time by Globe's Behaviour and Zoom Direction Factors",
        x = "Behaviour",
        y = "Task Completion Time") +
   theme_minimal()
