@@ -298,7 +298,7 @@ data.combined.qualitative <- combined_preference %>%
     Positioning_preference = case_when(
       str_detect(Positioning_preference, "Static orientation") ~ "staticOrientation",
       str_detect(Positioning_preference, "Adaptive orientation") ~ "adaptiveOrientation",
-      str_detect(Positioning_preference, "no preference") ~ "noPreference",
+      str_detect(Positioning_preference, "No preference") ~ "noPreference",
       TRUE ~ "unknown"
     ),
     Positioning_preference = as.factor(Positioning_preference)
@@ -307,7 +307,7 @@ data.combined.qualitative <- combined_preference %>%
     Rotation_preference = case_when(
     str_detect(Rotation_preference, "One-handed") ~ "oneHandedPreference",
     str_detect(Rotation_preference, "Two-handed") ~ "twoHandedPreference",
-    str_detect(Rotation_preference, "no preference") ~ "noPreference",
+    str_detect(Rotation_preference, "No preference") ~ "noPreference",
     TRUE ~ "unknown"
     ),
     Rotation_preference = as.factor(Rotation_preference)
@@ -316,7 +316,7 @@ data.combined.qualitative <- combined_preference %>%
     Scale_preference = case_when(
     str_detect(Scale_preference, "Maintain distance") ~ "maintainDistance",
     str_detect(Scale_preference, "Maintain globe") ~ "maintainGlobe",
-    str_detect(Scale_preference, "no preference") ~ "noPreference",
+    str_detect(Scale_preference, "No preference") ~ "noPreference",
     TRUE ~ "unknown"
     ),
     Scale_preference = as.factor(Scale_preference)
@@ -1812,4 +1812,103 @@ data.scale.qualitative %>%
 
 ```
 
+
 ###### Summary
+
+
+### Study: Combined Gesture Preference and Feedback
+
+```{r Combined Gesture Preference and Feedback}
+
+# Facet titles
+interaction_labels <- c(
+  Positioning_preference = "Positioning Preference",
+  Rotation_preference = "Rotation Preference",
+  Scale_preference = "Scale Preference"
+)
+
+data.combined.qualitative %>%
+  mutate(
+    Positioning_preference = case_when(
+      Positioning_preference == "adaptiveOrientation" ~ "Adaptive Orientation",
+      Positioning_preference == "staticOrientation" ~ "Static Orientation",
+      Positioning_preference == "noPreference" ~ "No Preference",
+      TRUE ~ as.character(Positioning_preference)
+    ),
+    Rotation_preference = case_when(
+      Rotation_preference == "oneHandedPreference" ~ "One Handed Preference",
+      Rotation_preference == "twoHandedPreference" ~ "Two Handed Preference",
+      Rotation_preference == "noPreference" ~ "No Preference",
+      TRUE ~ as.character(Rotation_preference)
+    ),
+    Scale_preference = case_when(
+      Scale_preference == "maintainDistance" ~ "Maintains Distance",
+      Scale_preference == "maintainGlobe" ~ "Maintains Position",
+      Scale_preference == "noPreference" ~ "No Preference",
+      TRUE ~ as.character(Scale_preference)
+    )
+  ) %>%
+  pivot_longer(
+    cols = c(Positioning_preference, Rotation_preference, Scale_preference),
+    names_to = "Interaction_Type",
+    values_to = "Preference"
+  ) %>%
+  ggplot(aes(x = Preference, fill = Preference)) +
+  geom_bar(show.legend = FALSE) +
+  facet_wrap(
+    ~ Interaction_Type,
+    scales = "free",
+    labeller = labeller(Interaction_Type = interaction_labels)
+  ) +
+  scale_y_continuous(breaks = 1:10, limits = c(0, 10)) +
+  labs(
+    title = "User Preference Distribution by Interaction Type",
+    x = "Preference",
+    y = "Count"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 30, hjust = 1),
+    strip.text = element_text(face = "bold")
+  )
+
+data.combined.qualitative %>%
+  mutate(
+    Positioning_preference = case_when(
+      Positioning_preference == "adaptiveOrientation" ~ "Adaptive Orientation",
+      Positioning_preference == "staticOrientation" ~ "Static Orientation",
+      Positioning_preference == "noPreference" ~ "No Preference",
+      TRUE ~ Positioning_preference
+    ),
+    Rotation_preference = case_when(
+      Rotation_preference == "oneHandedPreference" ~ "One Handed Preference",
+      Rotation_preference == "twoHandedPreference" ~ "Two Handed Preference",
+      Rotation_preference == "noPreference" ~ "No Preference",
+      TRUE ~ Scale_preference
+    ),
+    Scale_preference = case_when(
+      Scale_preference == "maintainDistance" ~ "Maintains distance",
+      Scale_preference == "maintainGlobe" ~ "Maintains position",
+      Scale_preference == "noPreference" ~ "No Preference",
+      TRUE ~ Scale_preference
+    ),
+  ) %>%
+  rename(
+    "Participant ID" = UserID,
+    "Positioning Preference" = Positioning_preference,
+    "Rotating Preference" = Rotation_preference,
+    "Scale Preference" = Scale_preference,
+    "Combined Feedback" = Combined_feedback
+  ) %>%
+  kable(caption = "User Feedback Summary - Scale", align = "c") %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  column_spec(1, bold = TRUE) %>%
+  row_spec(0, bold = TRUE, background = "#f7f7f7") %>%
+  scroll_box(width = "100%", height = "400px")
+
+
+```
