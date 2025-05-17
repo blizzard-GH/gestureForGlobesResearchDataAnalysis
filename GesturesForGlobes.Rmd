@@ -29,6 +29,7 @@ library(lubridate)
 library(scales)
 library(ARTool)
 library(knitr)
+library(kableExtra)
 
 data <- read_csv("study_tasks.csv")
 demographic <- read_csv("final_introductory.csv")
@@ -68,7 +69,264 @@ summary(scale_preference)
 summary(combined_preference)
 ```
 
+## General Data Preparation $ Restructuring
+
+Restructure the data for better analysis
+
+```{r Data - restructure}
+
+# Positioning
+
+data.positioning.accuracy <- data %>%
+  filter(Type == "positionTask") %>%
+  select(UserID, TaskID, rotateGlobeWhileDragging, match_accuracy_result, status) %>%
+  filter(status == "Matched") %>%
+  select(-status) %>%
+  mutate(Technique = if_else(rotateGlobeWhileDragging, "rotatingGlobe", "nonRotatingGlobe")) %>%
+  select(-rotateGlobeWhileDragging) %>%
+  rename("Accuracy" = "match_accuracy_result")
+  
+data.positioning.time <- data %>%
+  filter(Type == "positionTask") %>%
+  select(UserID, TaskID, rotateGlobeWhileDragging, Date) %>%
+  group_by(UserID, TaskID, rotateGlobeWhileDragging) %>%
+  summarise(
+    Time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  mutate(Technique = if_else(rotateGlobeWhileDragging, "rotatingGlobe", "nonRotatingGlobe")) %>%
+  select(-rotateGlobeWhileDragging)
+  
+data.positioning.borg <- data %>%
+  filter(Type == "positionTask") %>%
+  mutate(Technique = if_else(rotateGlobeWhileDragging, "rotatingGlobe", "nonRotatingGlobe")) %>%
+  select(UserID, Technique) %>%
+  distinct() %>%
+  inner_join(positioning_NRG, by = "UserID") %>%
+  rename(BORG_NRG = Physically_demanding) %>%
+  select(-Timestamp, -Mentally_demanding) %>%
+  mutate(BORG_NRG = as.numeric(str_extract(BORG_NRG, "\\d+(\\.\\d+)?"))) %>%
+  inner_join(positioning_RG, by = "UserID") %>%
+  rename(BORG_RG = Physically_demanding) %>%
+  select(-Timestamp, -Mentally_demanding) %>%
+  mutate(BORG_RG = as.numeric(str_extract(BORG_RG, "\\d+(\\.\\d+)?"))) %>%
+  mutate(
+    BORGRPE = if_else(Technique == "rotatingGlobe", BORG_RG, BORG_NRG)
+  ) %>%
+  select(-BORG_RG, -BORG_NRG)
+
+data.positioning.paas <- data %>%
+  filter(Type == "positionTask") %>%
+  mutate(Technique = if_else(rotateGlobeWhileDragging, "rotatingGlobe", "nonRotatingGlobe")) %>%
+  select(UserID, Technique) %>%
+  distinct() %>%
+  inner_join(positioning_NRG, by = "UserID") %>%
+  rename(PAAS_NRG = Mentally_demanding) %>%
+  select(-Timestamp, -Physically_demanding) %>%
+  mutate(PAAS_NRG = as.numeric(str_extract(PAAS_NRG, "\\d+(\\.\\d+)?"))) %>%
+  inner_join(positioning_RG, by = "UserID") %>%
+  rename(PAAS_RG = Mentally_demanding) %>%
+  select(-Timestamp, -Physically_demanding) %>%
+  mutate(PAAS_RG = as.numeric(str_extract(PAAS_RG, "\\d+(\\.\\d+)?"))) %>%
+  mutate(
+    PAAS = if_else(Technique == "rotatingGlobe", PAAS_RG, PAAS_NRG)
+  ) %>%
+  select(-PAAS_RG, -PAAS_NRG)
+
+data.positioning.qualitative <- positioning_preference %>%
+  select(-Timestamp) %>%
+  mutate(
+    Positioning_preference = case_when(
+      str_detect(Positioning_preference, "Static orientation") ~ "staticOrientation",
+      str_detect(Positioning_preference, "Adaptive orientation") ~ "adaptiveOrientation",
+      str_detect(Positioning_preference, "no preference") ~ "noPreference",
+      TRUE ~ "unknown"
+    ),
+    Positioning_preference = as.factor(Positioning_preference)
+  )
+
+# Rotating
+
+data.rotating.accuracy <- data %>%
+  filter(Type == "rotationTask") %>%
+  select(UserID, TaskID, oneHandedRotationGesture, match_accuracy_result, status) %>%
+  filter(status == "Matched") %>%
+  select(-status) %>%
+  mutate(Technique = if_else(oneHandedRotationGesture, "oneHanded", "twoHanded")) %>%
+  select(-oneHandedRotationGesture) %>%
+  rename("Accuracy" = "match_accuracy_result")
+
+data.rotating.time <- data %>%
+  filter(Type == "rotationTask") %>%
+  select(UserID, TaskID, oneHandedRotationGesture, Date) %>%
+  group_by(UserID, TaskID, oneHandedRotationGesture) %>%
+  summarise(
+    Time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  mutate(Technique = if_else(oneHandedRotationGesture, "oneHanded", "twoHanded")) %>%
+  select(-oneHandedRotationGesture)
+
+data.rotating.borg <- data %>%
+  filter(Type == "rotationTask") %>%
+  mutate(Technique = if_else(oneHandedRotationGesture, "oneHanded", "twoHanded")) %>%
+  select(UserID, Technique) %>%
+  distinct() %>%
+  inner_join(rotation_OH, by = "UserID") %>%
+  rename(BORG_OH = Physically_demanding) %>%
+  select(-Timestamp, -Mentally_demanding) %>%
+  mutate(BORG_OH = as.numeric(str_extract(BORG_OH, "\\d+(\\.\\d+)?"))) %>%
+  inner_join(rotation_TH, by = "UserID") %>%
+  rename(BORG_TH = Physically_demanding) %>%
+  select(-Timestamp, -Mentally_demanding) %>%
+  mutate(BORG_TH = as.numeric(str_extract(BORG_TH, "\\d+(\\.\\d+)?"))) %>%
+  mutate(
+    BORGRPE = if_else(Technique == "oneHanded", BORG_OH, BORG_TH)
+  ) %>%
+  select(-BORG_OH, -BORG_TH)
+
+data.rotating.paas <- data %>%
+  filter(Type == "rotationTask") %>%
+  mutate(Technique = if_else(oneHandedRotationGesture, "oneHanded", "twoHanded")) %>%
+  select(UserID, Technique) %>%
+  distinct() %>%
+  inner_join(rotation_OH, by = "UserID") %>%
+  rename(PAAS_OH = Mentally_demanding) %>%
+  select(-Timestamp, -Physically_demanding) %>%
+  mutate(PAAS_OH = as.numeric(str_extract(PAAS_OH, "\\d+(\\.\\d+)?"))) %>%
+  inner_join(rotation_TH, by = "UserID") %>%
+  rename(PAAS_TH = Mentally_demanding) %>%
+  select(-Timestamp, -Physically_demanding) %>%
+  mutate(PAAS_TH = as.numeric(str_extract(PAAS_TH, "\\d+(\\.\\d+)?"))) %>%
+  mutate(
+    PAAS = if_else(Technique == "oneHanded", PAAS_OH, PAAS_TH)
+  ) %>%
+  select(-PAAS_OH, -PAAS_TH)
+
+data.rotating.qualitative <- rotation_preference %>%
+  select(-Timestamp) %>%
+  mutate(
+    Rotation_preference = case_when(
+    str_detect(Rotation_preference, "One-handed") ~ "oneHandedPreference",
+    str_detect(Rotation_preference, "Two-handed") ~ "twoHandedPreference",
+    str_detect(Rotation_preference, "no preference") ~ "noPreference",
+    TRUE ~ "unknown"
+    ),   
+    Rotation_preference = as.factor(Rotation_preference)
+  ) 
+
+# Scale
+
+data.scale.accuracy <- data %>%
+  filter(Type == "scaleTask") %>%
+  select(UserID, TaskID, moveGlobeWhileScaling, match_accuracy_result, status) %>%
+  filter(status == "Matched") %>%
+  select(-status) %>%
+  mutate(Technique = if_else(moveGlobeWhileScaling, "movingGlobe", " nonMovingGlobe")) %>%
+  select(-moveGlobeWhileScaling) %>%
+  rename("Accuracy" = "match_accuracy_result")
+
+data.scale.time <- data %>%
+  filter(Type == "scaleTask") %>%
+  select(UserID, TaskID, moveGlobeWhileScaling, Date) %>%
+  group_by(UserID, TaskID, moveGlobeWhileScaling) %>%
+  summarise(
+    Time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
+    .groups = "drop"
+  ) %>%
+  mutate(Technique = if_else(moveGlobeWhileScaling, "movingGlobe", "nonMovingGLobe")) %>%
+  select(-moveGlobeWhileScaling)
+
+data.scale.borg <- data %>%
+  filter(Type == "scaleTask") %>%
+  mutate(Technique = if_else(moveGlobeWhileScaling, "movingGlobe", "nonMovingGlobe")) %>%
+  select(UserID, Technique) %>%
+  distinct() %>%
+  inner_join(scale_NMG, by = "UserID") %>%
+  rename(BORG_NMG = Physically_demanding) %>%
+  select(-Timestamp, -Mentally_demanding) %>%
+  mutate(BORG_NMG = as.numeric(str_extract(BORG_NMG, "\\d+(\\.\\d+)?"))) %>%
+  inner_join(scale_MG, by = "UserID") %>%
+  rename(BORG_MG = Physically_demanding) %>%
+  select(-Timestamp, -Mentally_demanding) %>%
+  mutate(BORG_MG = as.numeric(str_extract(BORG_MG, "\\d+(\\.\\d+)?"))) %>%
+  mutate(
+    BORGRPE = if_else(Technique == "movingGlobe", BORG_MG, BORG_NMG)
+  ) %>%
+  select(-BORG_MG, -BORG_NMG)
+
+data.scale.paas <- data %>%
+  filter(Type == "scaleTask") %>%
+  mutate(Technique = if_else(moveGlobeWhileScaling, "movingGlobe", "nonMovingGlobe")) %>%
+  select(UserID, Technique) %>%
+  distinct() %>%
+  inner_join(scale_NMG, by = "UserID") %>%
+  rename(PAAS_NMG = Mentally_demanding) %>%
+  select(-Timestamp, -Physically_demanding) %>%
+  mutate(PAAS_NMG = as.numeric(str_extract(PAAS_NMG, "\\d+(\\.\\d+)?"))) %>%
+  inner_join(scale_MG, by = "UserID") %>%
+  rename(PAAS_MG = Mentally_demanding) %>%
+  select(-Timestamp, -Physically_demanding) %>%
+  mutate(PAAS_MG = as.numeric(str_extract(PAAS_MG, "\\d+(\\.\\d+)?"))) %>%
+  mutate(
+    PAAS = if_else(Technique == "movingGlobe", PAAS_MG, PAAS_NMG)
+  ) %>%
+  select(-PAAS_MG, -PAAS_NMG)
+
+data.scale.qualitative <- scale_preference %>%
+  select(-Timestamp) %>%
+  mutate(
+    Scale_preference = case_when(
+    str_detect(Scale_preference, "Maintain distance") ~ "maintainDistance",
+    str_detect(Scale_preference, "Maintain globe") ~ "maintainGlobe",
+    str_detect(Scale_preference, "no preference") ~ "noPreference",
+    TRUE ~ "unknown"
+    ),
+    Scale_preference = as.factor(Scale_preference)
+  ) 
+
+# Combined qualitative
+
+data.combined.qualitative <- combined_preference %>%
+  select(-Timestamp) %>%
+  rename(
+    Positioning_preference = Combined_positioning_preference,
+    Rotation_preference = Combined_rotation_preference,
+    Scale_preference = Combined_scale_preference
+  ) %>%
+  mutate(
+    Positioning_preference = case_when(
+      str_detect(Positioning_preference, "Static orientation") ~ "staticOrientation",
+      str_detect(Positioning_preference, "Adaptive orientation") ~ "adaptiveOrientation",
+      str_detect(Positioning_preference, "no preference") ~ "noPreference",
+      TRUE ~ "unknown"
+    ),
+    Positioning_preference = as.factor(Positioning_preference)
+  ) %>%
+  mutate(
+    Rotation_preference = case_when(
+    str_detect(Rotation_preference, "One-handed") ~ "oneHandedPreference",
+    str_detect(Rotation_preference, "Two-handed") ~ "twoHandedPreference",
+    str_detect(Rotation_preference, "no preference") ~ "noPreference",
+    TRUE ~ "unknown"
+    ),
+    Rotation_preference = as.factor(Rotation_preference)
+  ) %>%
+  mutate(
+    Scale_preference = case_when(
+    str_detect(Scale_preference, "Maintain distance") ~ "maintainDistance",
+    str_detect(Scale_preference, "Maintain globe") ~ "maintainGlobe",
+    str_detect(Scale_preference, "no preference") ~ "noPreference",
+    TRUE ~ "unknown"
+    ),
+    Scale_preference = as.factor(Scale_preference)
+  )
+
+```
+
+
 ## Participants Demographic Information
+
 
 ```{r Demographic}
 # Total number of participants
@@ -247,16 +505,13 @@ data.positioning <- data %>%
 
 ```{r PositionStudy - Accuracy - Normality}
 
-data.positioning.matched <- data.positioning %>%
-  filter(status == "Matched")
+shapiro.test(data.positioning.accuracy$Accuracy)
 
-shapiro.test(data.positioning.matched$match_accuracy_result)
-
-hist(data.positioning.matched$match_accuracy_result, breaks = 100,
+hist(data.positioning.accuracy$Accuracy, breaks = 100,
      main = "Histogram (Zoomed)", xlab = "Accuracy",
      col = "lightblue", xlim = c(0, 0.06))
 
-plot(density(data.positioning.matched$match_accuracy_result), 
+plot(density(data.positioning.accuracy$Accuracy), 
      main = "Density Plot (Zoomed)", xlab = "Accuracy",
      col = "blue", lwd = 2, xlim = c(0, 0.6))
 ```
@@ -267,6 +522,9 @@ So, we cannot use one way ANOVA, instead, we use Wilcoxon signed-rank test
 ###### Statistical Tests
 
 ```{r PositionStudy - Accuracy - Statistical tests}
+
+data.positioning.matched <- data.positioning %>%
+  filter(status == "Matched")
 
 data.positioning.matched.accuracy_avg.long <- data.positioning.matched %>%
   group_by(UserID, positionCondition, distance, direction) %>%
@@ -400,14 +658,7 @@ ggplot(data.positioning.matched.accuracy_avg.long, aes(x = positionCondition, y 
 
 ```{r PositionStudy - Completion Time - Normality}
 
-data.positioning.taskCompletion_avg <- data.positioning %>%
-  group_by(UserID, TaskID) %>%
-  summarise(
-    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
-    .groups = "drop"
-  )
-
-shapiro.test(data.positioning.taskCompletion_avg$completion_time)
+shapiro.test(data.positioning.time$Time)
 
 ```
 
@@ -557,35 +808,43 @@ ggplot(data.positioning.taskCompletion_avg.long, aes(x = positionCondition, y = 
 
 ```{r Subjective Measures - Physical and Mental Exertion}
 
-data.positioning.long <- data.positioning %>% 
-  select(UserID, positionCondition, PAAS_RG, BORG_RG, PAAS_NRG, BORG_NRG) %>%
-  distinct() %>%
+data.positioning.combined_exertion <- data.positioning.paas %>%
+  full_join(data.positioning.borg, by = c("UserID", "Technique")) %>%
   pivot_longer(
-    cols = c(PAAS_RG, BORG_RG, PAAS_NRG, BORG_NRG),
+    cols = c(PAAS, BORGRPE),
     names_to = "Measure",
     values_to = "Score"
   ) %>%
-  filter(!is.na(Score)) %>%  
   mutate(
+    Measure = case_when(
+      Measure == "PAAS" & Technique == "rotatingGlobe" ~ "PAAS_RG",
+      Measure == "PAAS" & Technique == "nonRotatingGlobe" ~ "PAAS_NRG",
+      Measure == "BORGRPE" & Technique == "rotatingGlobe" ~ "BORG_RG",
+      Measure == "BORGRPE" & Technique == "nonRotatingGlobe" ~ "BORG_NRG",
+      TRUE ~ Measure
+    ),
     ExertionType = case_when(
       str_detect(Measure, "PAAS") ~ "Cognitive load",
       str_detect(Measure, "BORG") ~ "Physical exertion",
       TRUE ~ "Unknown"
-    ),
-    UserID = as.factor(UserID),
-    ExertionType = as.factor(ExertionType)
+    )
   ) %>%
-  group_by(UserID, positionCondition, Measure)
+  select(UserID, Technique, Measure, Score, ExertionType) %>%
+  mutate(
+    Technique = as.factor(Technique),
+    ExertionType = as.factor(ExertionType)
+  )
 
-data.positioning.long.art_anova <- art(Score ~ positionCondition * ExertionType + (1|UserID), data = data.positioning.long)
-anova(data.positioning.long.art_anova)
+data.positioning.combined_exertion.art_anova <- art(Score ~ Technique * ExertionType + (1|UserID), data = data.positioning.combined_exertion)
+
+anova(data.positioning.combined_exertion.art_anova)
 
 # 	•	Main effect of positionCondition: F(1, 33) = 12.55, p = 0.0012 This is statistically significant, indicating that task positioning condition (e.g., rotating vs non-rotating globe) has a significant effect on the overall exertion score (which includes cognitive load and physical exertion).
 #   •	Main effect of ExertionType: F(1, 33) = 12.81, p = 0.0011 Also statistically significant, meaning that there is a clear difference between cognitive load (PAAS) and physical exertion (BORG) scores regardless of the positioning condition.
 # 	•	Interaction effect (positionCondition × ExertionType): F(1, 33) = 0.18, p = 0.6774, suggesting that the effect of positioning condition does not depend on the type of exertion, and vice versa. The differences in PAAS and BORG scores are consistent across both positioning conditions.
 # Both the positioning condition and type of exertion significantly influence the exertion score independently, but there is no interaction effect. This means that while both factors matter, their effects do not amplify or diminish each other. For example, rotating vs non-rotating globes affects scores, and cognitive vs physical exertion shows distinct levels, but the difference between PAAS and BORG scores remains similar across positioning conditions.
 
-ggplot(data.positioning.long, aes(x = positionCondition, y = Score, fill = ExertionType)) +
+ggplot(data.positioning.combined_exertion, aes(x = Technique, y = Score, fill = ExertionType)) +
   geom_boxplot(width = 0.1, position = position_dodge(0.8)) +
   labs(
     x = "Position Condition",
@@ -594,8 +853,8 @@ ggplot(data.positioning.long, aes(x = positionCondition, y = Score, fill = Exert
   ) +
   theme_minimal()
 
-data.positioning.long %>%
-  group_by(positionCondition, ExertionType) %>%
+data.positioning.combined_exertion %>%
+  group_by(Technique, ExertionType) %>%
   summarise(
     mean_score = mean(Score),
     sd = sd(Score),
@@ -603,32 +862,31 @@ data.positioning.long %>%
     ci = qt(0.975, df = n - 1) * sd / sqrt(n),
     .groups = "drop"
   ) %>%
-  ggplot(aes(x = positionCondition, y = mean_score, fill = ExertionType)) +
+  ggplot(aes(x = Technique, y = mean_score, fill = ExertionType)) +
   geom_col(position = position_dodge(width = 0.7), width = 0.6) +
   geom_errorbar(aes(ymin = mean_score - ci, ymax = mean_score + ci),
                 position = position_dodge(width = 0.7), width = 0.2) +
   labs(
-    x = "Position Condition",
+    x = "Position Technique",
     y = "Mean Score (95% CI)",
     fill = "Exertion Type",
     title = "Mean Score by Position Condition and Exertion Type"
   ) +
   theme_minimal()
+
 ```
 
 ###### Preference
 
 ```{r Positioning - Preference}
 
-data.positioning %>%
-  select(UserID, behaviour_preference) %>%
-  distinct() %>%  
-  count(behaviour_preference) %>%
+data.positioning.qualitative %>%
+  count(Positioning_preference) %>%
   mutate(
     percent = n / sum(n),
     ncount = paste0(n, "\n", percent_format()(percent))
   ) %>%
-  ggplot(aes(x = "", y = n, fill = behaviour_preference)) +
+  ggplot(aes(x = "", y = n, fill = Positioning_preference)) +
   geom_col(width = 1, color = "white") +
   coord_polar(theta = "y") +
   geom_text(aes(label = ncount), position = position_stack(vjust = 0.5), size = 4) +
@@ -638,29 +896,37 @@ data.positioning %>%
   ) +
   theme_void()
 
+
 ```
 
 ###### Comments
 
 ```{r Positioning - comments}
 
-data.positioning.preference.summary <- data.positioning %>%
+data.positioning.qualitative %>%
   mutate(
-    behaviour_preference = case_when(
-      behaviour_preference == "staticOrientation" ~ "Static Orientation",
-      behaviour_preference == "adaptiveOrientation" ~ "Adaptive Orientation",
-      behaviour_preference == "noPreference" ~ "No Preference",
-      TRUE ~ behaviour_preference
+    Positioning_preference = case_when(
+      Positioning_preference == "staticOrientation" ~ "Static Orientation",
+      Positioning_preference == "adaptiveOrientation" ~ "Adaptive Orientation",
+      Positioning_preference == "noPreference" ~ "No Preference",
+      TRUE ~ Positioning_preference
     )
   ) %>%
-  group_by(UserID) %>%
-  summarise(
-    behaviour_preference = first(behaviour_preference),
-    behaviour_feedback = first(behaviour_feedback),
-    .groups = "drop"
-  )
+  rename(
+    "Participant ID" = UserID,
+    "Positioning Preference" = Positioning_preference,
+    "Positioning Feedback" = Positioning_feedback
+  ) %>%
+  kable(caption = "User Feedback Summary - Positioning", align = "c") %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  column_spec(1, bold = TRUE) %>%
+  row_spec(0, bold = TRUE, background = "#f7f7f7") %>%
+  scroll_box(width = "100%", height = "400px")
 
-kable(data.positioning.preference.summary, caption = "User Feedback Summary - Positioning")
 
 ```
 
@@ -732,16 +998,13 @@ data.rotating <- data %>%
 
 ```{r Rotation Task Study - Accuracy - Normality}
 
-data.rotating.matched <- data.rotating %>%
-  filter(status == "Matched")
+shapiro.test(data.rotating.accuracy$Accuracy)
 
-shapiro.test(data.rotating.matched$match_accuracy_result)
-
-hist(data.rotating.matched$match_accuracy_result, breaks = 100,
+hist(data.rotating.accuracy$Accuracy, breaks = 100,
      main = "Histogram (Zoomed)", xlab = "Accuracy",
      col = "lightblue", xlim = c(0, 0.5))
 
-plot(density(data.rotating.matched$match_accuracy_result), 
+plot(density(data.rotating.accuracy$Accuracy), 
      main = "Density Plot (Zoomed)", xlab = "Accuracy",
      col = "blue", lwd = 2, xlim = c(0, 0.5))
 
@@ -754,6 +1017,9 @@ So, we cannot use one way ANOVA, instead, we use Wilcoxon signed-rank test
 
 ```{r Rotation Task Study - Accuracy - Statistical Tests}
  
+data.rotating.matched <- data.rotating %>%
+  filter(status == "Matched")
+
 data.rotating.matched.accuracy_avg.long <- data.rotating.matched %>%
   group_by(UserID, rotationCondition, complexity) %>%
   summarise(mean_accuracy = mean(match_accuracy_result, na.rm = TRUE), .groups = 'drop') 
@@ -861,19 +1127,14 @@ ggplot(data.rotating.matched.accuracy_avg.long, aes(x = rotationCondition, y = m
 
 ```{r Rotation Task Study - Completion Time - Normality}
 
-data.rotating.taskCompletion_avg <- data.rotating %>%
-  group_by(UserID, TaskID) %>%
-  summarise(
-    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
-    .groups = "drop"
-  )
+shapiro.test(data.rotating.time$Time)
 
-shapiro.test(data.rotating.taskCompletion_avg$completion_time)
 ```
 
 ###### Statistical Tests
 
 ```{r Rotation Task Study - Completion Time - Statistical Tests}
+
 data.rotating.taskCompletion_avg.long <- data.rotating %>%
   group_by(UserID, rotationCondition, complexity, TaskID) %>%
   summarise(
@@ -988,35 +1249,45 @@ ggplot(data.rotating.taskCompletion_avg.long, aes(x = rotationCondition, y = avg
 ###### Physical and Mental Exertion
 
 ```{r Positioning - Physical and Mental Exertion}
-data.rotating.long <- data.rotating %>% 
-  select(UserID, rotationCondition, PAAS_OH, BORG_OH, PAAS_TH, BORG_TH) %>%
-  distinct() %>%
+
+data.rotating.combined_exertion <- data.rotating.paas %>%
+  full_join(data.rotating.borg, by = c("UserID", "Technique")) %>%
   pivot_longer(
-    cols = c(PAAS_OH, BORG_OH, PAAS_TH, BORG_TH),
+    cols = c(PAAS, BORGRPE),
     names_to = "Measure",
     values_to = "Score"
   ) %>%
-  filter(!is.na(Score)) %>%  
   mutate(
+    Measure = case_when(
+      Measure == "PAAS" & Technique == "oneHanded" ~ "PAAS_OH",
+      Measure == "PAAS" & Technique == "twoHanded" ~ "PAAS_TH",
+      Measure == "BORGRPE" & Technique == "oneHanded" ~ "BORG_OH",
+      Measure == "BORGRPE" & Technique == "twoHanded" ~ "BORG_TH",
+      TRUE ~ Measure
+    ),
     ExertionType = case_when(
       str_detect(Measure, "PAAS") ~ "Cognitive load",
       str_detect(Measure, "BORG") ~ "Physical exertion",
       TRUE ~ "Unknown"
-    ),
-    UserID = as.factor(UserID),
-    ExertionType = as.factor(ExertionType)
+    )
   ) %>%
-  group_by(UserID, rotationCondition, Measure)
-  
-data.rotating.long.art_anova <- art(Score ~ rotationCondition * ExertionType + (1|UserID), data = data.rotating.long)
-anova(data.rotating.long.art_anova)
+  select(UserID, Technique, Measure, Score, ExertionType) %>%
+  mutate(
+    Technique = as.factor(Technique),
+    ExertionType = as.factor(ExertionType)
+  )
+
+data.rotating.combined_exertion.art_anova <- art(Score ~ Technique * ExertionType + (1|UserID), data = data.rotating.combined_exertion)
+
+anova(data.rotating.combined_exertion.art_anova)
+
 
 # 	•	Main effect of rotationCondition: F(1, 33) = 4.28, p = 0.0466 This is statistically significant at the 0.05 level, indicating that rotating vs non-rotating globe conditions have a meaningful impact on participants’ perceived exertion scores (cognitive or physical).
 #	  •	Main effect of ExertionType: F(1, 33) = 20.75, p < 0.001 This is highly significant,  showing a strong difference between cognitive load (PAAS) and physical exertion (BORG) scores, regardless of the globe rotation condition.
 #  	•	Interaction effect (rotationCondition × ExertionType): F(1, 33) = 0.016, p = 0.8990 Not significant. Suggesting that the difference between cognitive and physical exertion is consistent across both rotation conditions. The type of exertion does not change depending on whether the globe was rotating or not.
 # Both rotation condition and exertion type have independent effects on perceived exertion. Participants reported different exertion levels between rotating and non-rotating globes, and also between cognitive and physical demands. However, there is no interaction, meaning the relative difference between PAAS and BORG remains stable across rotation types.
 
-ggplot(data.rotating.long, aes(x = rotationCondition, y = Score, fill = ExertionType)) +
+ggplot(data.rotating.combined_exertion, aes(x = Technique, y = Score, fill = ExertionType)) +
   geom_boxplot(width = 0.1, position = position_dodge(0.8)) +
   labs(
     x = "Rotation Condition",
@@ -1024,28 +1295,50 @@ ggplot(data.rotating.long, aes(x = rotationCondition, y = Score, fill = Exertion
     title = "Distribution of Scores by Technique and Exertion Type"
   ) +
   theme_minimal()
+
+data.rotating.combined_exertion %>%
+  group_by(Technique, ExertionType) %>%
+  summarise(
+    mean_score = mean(Score),
+    sd = sd(Score),
+    n = n(),
+    ci = qt(0.975, df = n - 1) * sd / sqrt(n),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = Technique, y = mean_score, fill = ExertionType)) +
+  geom_col(position = position_dodge(width = 0.7), width = 0.6) +
+  geom_errorbar(aes(ymin = mean_score - ci, ymax = mean_score + ci),
+                position = position_dodge(width = 0.7), width = 0.2) +
+  labs(
+    x = "Rotation Technique",
+    y = "Mean Score (95% CI)",
+    fill = "Exertion Type",
+    title = "Mean Score by Position Condition and Exertion Type"
+  ) +
+  theme_minimal()
+
 ```
 
 ###### Preference
 
 ```{r Rotating - Preference}
-data.rotating %>%
-  select(UserID, behaviour_preference) %>%
-  distinct() %>%  
-  count(behaviour_preference) %>%
+
+data.rotating.qualitative %>%
+  count(Rotation_preference) %>%
   mutate(
     percent = n / sum(n),
     ncount = paste0(n, "\n", percent_format()(percent))
   ) %>%
-  ggplot(aes(x = "", y = n, fill = behaviour_preference)) +
+  ggplot(aes(x = "", y = n, fill = Rotation_preference)) +
   geom_col(width = 1, color = "white") +
   coord_polar(theta = "y") +
   geom_text(aes(label = ncount), position = position_stack(vjust = 0.5), size = 4) +
   labs(
-    title = "Distribution of Rotation Behaviour Preferences",
+    title = "Distribution of Rotation Technique Preferences",
     fill = "Preference"
   ) +
   theme_void()
+
 ```
 
 
@@ -1053,23 +1346,31 @@ data.rotating %>%
 
 
 ```{r Rotating - Comments}
-data.rotating.preference.summary <- data.rotating %>%
+
+data.rotating.qualitative %>%
   mutate(
-    behaviour_preference = case_when(
-      behaviour_preference == "oneHandedPreference" ~ "One Handed Gesture",
-      behaviour_preference == "twoHandedPreference" ~ "Two Handed Gesture",
-      behaviour_preference == "noPreference" ~ "No Preference",
-      TRUE ~ behaviour_preference
+    Rotation_preference = case_when(
+      Rotation_preference == "oneHandedPreference" ~ "One-handed Rotation Gesture",
+      Rotation_preference == "twoHandedPreference" ~ "Two-handed Rotation Gesture",
+      Rotation_preference == "noPreference" ~ "No Preference",
+      TRUE ~ Rotation_preference
     )
   ) %>%
-  group_by(UserID) %>%
-  summarise(
-    behaviour_preference = first(behaviour_preference),
-    behaviour_feedback = first(behaviour_feedback),
-    .groups = "drop"
-  )
+  rename(
+    "Participant ID" = UserID,
+    "Rotating Preference" = Rotation_preference,
+    "Rotating Feedback" = Rotation_feedback
+  ) %>%
+  kable(caption = "User Feedback Summary - Rotating", align = "c") %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  column_spec(1, bold = TRUE) %>%
+  row_spec(0, bold = TRUE, background = "#f7f7f7") %>%
+  scroll_box(width = "100%", height = "400px")
 
-kable(data.rotating.preference.summary, caption = "User Feedback Summary - Rotating")
 ```
 
 ###### Summary
@@ -1079,6 +1380,7 @@ kable(data.rotating.preference.summary, caption = "User Feedback Summary - Rotat
 #### Scale Data Preparation
 
 ```{r Scale Data Preparation}
+
 data.scale <- data %>%
   mutate(scaleCondition = if_else(moveGlobeWhileScaling, "movingGlobe", "nonMovingGlobe")) %>%
   select(-moveGlobeWhileScaling) %>%
@@ -1140,16 +1442,13 @@ data.scale <- data %>%
 
 ```{r Scale Task Study - Accuracy - Normality}
 
-data.scale.matched <- data.scale %>%
-  filter(status == "Matched")
+shapiro.test(data.scale.accuracy$Accuracy)
 
-shapiro.test(data.scale.matched$match_accuracy_result)
-
-hist(data.scale.matched$match_accuracy_result, breaks = 100,
+hist(data.scale.accuracy$Accuracy, breaks = 100,
      main = "Histogram (Zoomed)", xlab = "Accuracy",
-     col = "lightblue", xlim = c(0, 0.5))
+     col = "lightblue", xlim = c(0, 0.12))
 
-plot(density(data.scale.matched$match_accuracy_result), 
+plot(density(data.scale.accuracy$Accuracy), 
      main = "Density Plot (Zoomed)", xlab = "Accuracy",
      col = "blue", lwd = 2, xlim = c(0, 0.5))
 
@@ -1160,6 +1459,10 @@ plot(density(data.scale.matched$match_accuracy_result),
 ###### Statistical tests 
 
 ```{r Scale Task Study - Accuracy - Statistical Tests}
+
+data.scale.matched <- data.scale %>%
+  filter(status == "Matched")
+
 data.scale.matched.accuracy_avg.long <- data.scale.matched %>%
   group_by(UserID, scaleCondition, zoomDirection) %>%
   summarise(mean_accuracy = mean(match_accuracy_result, na.rm = TRUE), .groups = 'drop')
@@ -1266,14 +1569,9 @@ ggplot(data.scale.matched.accuracy_avg.long, aes(x = scaleCondition, y = mean_ac
 ###### Normality
 
 ```{r Scale Task Study - Completion Time - Normality}
-data.scale.taskCompletion_avg <- data.scale %>%
-  group_by(UserID, TaskID) %>%
-  summarise(
-    completion_time = as.numeric(difftime(max(Date), min(Date), units = "mins")),
-    .groups = "drop"
-  )
 
-shapiro.test(data.scale.taskCompletion_avg$completion_time)
+shapiro.test(data.scale.time$Time)
+
 ```
 
 ###### Statistical Tests
@@ -1396,40 +1694,69 @@ ggplot(data.scale.taskCompletion_avg.long, aes(x = scaleCondition, y = avg_compl
 ###### Physical and Mental Exertion
 
 ```{r Scale - Physical and Mental Exertion}
-data.scale.long <- data.scale %>% 
-  select(UserID, scaleCondition, PAAS_MG, BORG_MG, PAAS_NMG, BORG_NMG) %>%
-  distinct() %>%
+
+data.scale.combined_exertion <- data.scale.paas %>%
+  full_join(data.scale.borg, by = c("UserID", "Technique")) %>%
   pivot_longer(
-    cols = c(PAAS_MG, BORG_MG, PAAS_NMG, BORG_NMG),
+    cols = c(PAAS, BORGRPE),
     names_to = "Measure",
     values_to = "Score"
   ) %>%
-  filter(!is.na(Score)) %>%  
   mutate(
+    Measure = case_when(
+      Measure == "PAAS" & Technique == "movingGlobe" ~ "PAAS_MG",
+      Measure == "PAAS" & Technique == "nonMovingGlobe" ~ "PAAS_NMG",
+      Measure == "BORGRPE" & Technique == "movingGlobe" ~ "BORG_MG",
+      Measure == "BORGRPE" & Technique == "nonMovingGlobe" ~ "BORG_NMG",
+      TRUE ~ Measure
+    ),
     ExertionType = case_when(
       str_detect(Measure, "PAAS") ~ "Cognitive load",
       str_detect(Measure, "BORG") ~ "Physical exertion",
       TRUE ~ "Unknown"
-    ),
-    UserID = as.factor(UserID),
-    ExertionType = as.factor(ExertionType)
+    )
   ) %>%
-  group_by(UserID, scaleCondition, Measure)
-  
-data.scale.long.art_anova <- art(Score ~ scaleCondition * ExertionType + (1|UserID), data = data.scale.long)
-anova(data.scale.long.art_anova)
+  select(UserID, Technique, Measure, Score, ExertionType) %>%
+  mutate(
+    Technique = as.factor(Technique),
+    ExertionType = as.factor(ExertionType)
+  )
+
+data.scale.combined_exertion.art_anova <- art(Score ~ Technique * ExertionType + (1|UserID), data = data.scale.combined_exertion)
+anova(data.scale.combined_exertion.art_anova)
 
 # 	•	Main effect of scaleCondition: F(1, 33) = 1.36, p = 0.2521 Not statistically significant. This suggests that the scaling condition (e.g. scaled vs not scaled globe) did not have a meaningful effect on exertion scores overall. 
 #  	•	Main effect of ExertionType: F(1, 33) = 55.27, p < 0.001 → Highly significant. This shows a strong difference between cognitive load (PAAS) and physical exertion (BORG) scores, regardless of the scale condition.
 # 	•	Interaction (scaleCondition × ExertionType): F(1, 33) = 0.084, p = 0.7735. This means the difference between PAAS and BORG scores does not vary depending on whether scaling was involved.
 # Only the type of exertion (cognitive vs physical) had a significant impact on participant scores. The scale condition had no effect, nor did it change the relationship between exertion types. Participants consistently rated cognitive and physical exertion differently, but this pattern was stable across both scaled and non-scaled conditions.
 
-ggplot(data.scale.long, aes(x = scaleCondition, y = Score, fill = ExertionType)) +
+ggplot(data.scale.combined_exertion, aes(x = Technique, y = Score, fill = ExertionType)) +
   geom_boxplot(width = 0.1, position = position_dodge(0.8)) +
   labs(
-    x = "Scale Condition",
+    x = "Scale Technique",
     y = "Score",
     title = "Distribution of Scores by Behaviour and Exertion Type"
+  ) +
+  theme_minimal()
+
+data.scale.combined_exertion %>%
+  group_by(Technique, ExertionType) %>%
+  summarise(
+    mean_score = mean(Score),
+    sd = sd(Score),
+    n = n(),
+    ci = qt(0.975, df = n - 1) * sd / sqrt(n),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = Technique, y = mean_score, fill = ExertionType)) +
+  geom_col(position = position_dodge(width = 0.7), width = 0.6) +
+  geom_errorbar(aes(ymin = mean_score - ci, ymax = mean_score + ci),
+                position = position_dodge(width = 0.7), width = 0.2) +
+  labs(
+    x = "Scale Technique",
+    y = "Mean Score (95% CI)",
+    fill = "Exertion Type",
+    title = "Mean Score by Position Condition and Exertion Type"
   ) +
   theme_minimal()
 
@@ -1438,15 +1765,14 @@ ggplot(data.scale.long, aes(x = scaleCondition, y = Score, fill = ExertionType))
 ###### Preference
 
 ```{r Scale - Preference}
-data.scale %>%
-  select(UserID, behaviour_preference) %>%
-  distinct() %>%  
-  count(behaviour_preference) %>%
+
+data.scale.qualitative %>%
+  count(Scale_preference) %>%
   mutate(
     percent = n / sum(n),
     ncount = paste0(n, "\n", percent_format()(percent))
   ) %>%
-  ggplot(aes(x = "", y = n, fill = behaviour_preference)) +
+  ggplot(aes(x = "", y = n, fill = Scale_preference)) +
   geom_col(width = 1, color = "white") +
   coord_polar(theta = "y") +
   geom_text(aes(label = ncount), position = position_stack(vjust = 0.5), size = 4) +
@@ -1460,23 +1786,30 @@ data.scale %>%
 ###### Comments
 
 ```{r Scale - Comments}
-data.scale.preference.summary <- data.scale %>%
+data.scale.qualitative %>%
   mutate(
-    behaviour_preference = case_when(
-      behaviour_preference == "maintainDistance" ~ "Maintain Globe's Distance",
-      behaviour_preference == "maintainGlobe" ~ "Maintain Globe's Position",
-      behaviour_preference == "noPreference" ~ "No Preference",
-      TRUE ~ behaviour_preference
+    Scale_preference = case_when(
+      Scale_preference == "maintainDistance" ~ "Maintains distance",
+      Scale_preference == "maintainGlobe" ~ "Maintains position",
+      Scale_preference == "noPreference" ~ "No Preference",
+      TRUE ~ Scale_preference
     )
   ) %>%
-  group_by(UserID) %>%
-  summarise(
-    behaviour_preference = first(behaviour_preference),
-    behaviour_feedback = first(behaviour_feedback),
-    .groups = "drop"
-  )
+  rename(
+    "Participant ID" = UserID,
+    "Scale Preference" = Scale_preference,
+    "Scale Feedback" = Scale_feedback
+  ) %>%
+  kable(caption = "User Feedback Summary - Scale", align = "c") %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  column_spec(1, bold = TRUE) %>%
+  row_spec(0, bold = TRUE, background = "#f7f7f7") %>%
+  scroll_box(width = "100%", height = "400px")
 
-kable(data.scale.preference.summary, caption = "User Feedback Summary - Scale")
 ```
 
 ###### Summary
