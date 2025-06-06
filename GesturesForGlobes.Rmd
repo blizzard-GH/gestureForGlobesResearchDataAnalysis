@@ -587,7 +587,7 @@ data.positioning.matched.accuracy_avg.long %>%
   geom_col(width = 0.6) +
   geom_errorbar(aes(ymin = mean_mean_accuracy - ci, ymax = mean_mean_accuracy + ci), width = 0.2) +
   labs(
-    title = "Mean Match Accuracy by Globe Separation Distance",
+    title = "Mean Match Accuracy by Globes' Separation Distance",
     x = "Globe Distance",
     y = "Mean Accuracy",
     fill = "Globe Distance"
@@ -598,6 +598,8 @@ data.positioning.matched.accuracy_avg.long %>%
   ) +
   theme_minimal() +
   theme(axis.text.x = element_text())
+
+ggsave("Position_distance_bar.svg")
 
 # Plotting for direction conditions
 data.positioning.matched.accuracy_avg.long %>%
@@ -612,7 +614,7 @@ data.positioning.matched.accuracy_avg.long %>%
   geom_col(width = 0.6) +
   geom_errorbar(aes(ymin = mean_mean_accuracy - ci, ymax = mean_mean_accuracy + ci), width = 0.2) +
   labs(
-    title = "Mean Match Accuracy by Globe Separation Direction",
+    title = "Mean Match Accuracy by Globes' Separation Direction",
     x = "Globe Direction",
     y = "Mean Accuracy",
     fill = "Globe Direction"
@@ -624,6 +626,8 @@ data.positioning.matched.accuracy_avg.long %>%
   ) +
   theme_minimal() +
   theme(axis.text.x = element_text())
+
+ggsave("Position_direction_bar.svg")
 
 # Plotting for both Position Conditions and Technique
 data.positioning.matched.accuracy_avg.long %>%
@@ -656,6 +660,8 @@ data.positioning.matched.accuracy_avg.long %>%
   theme_minimal() +
   theme(axis.text.x = element_blank())
 
+ggsave("Position_direction_distance_bar.svg")
+
 # Boxplots for globe technique and conditions
 
 data.positioning.matched.accuracy_avg.long %>%
@@ -674,6 +680,9 @@ data.positioning.matched.accuracy_avg.long %>%
   theme(
     plot.title = element_text(hjust = 0.5)
   )
+
+ggsave("Position_direction_distance_boxplot.svg")
+
 
 data.positioning.matched.accuracy_avg.long %>%
   group_by(distance) %>%
@@ -817,6 +826,8 @@ data.positioning.taskCompletion_avg.long %>%
   theme(axis.text.x = element_blank(),
         plot.title = element_text(hjust = 0.5))
 
+ggsave("positioning_direction_time.svg")
+
   # Plotting for both Position Factors and Technique
 data.positioning.taskCompletion_avg.long %>%
   group_by(positionCondition, distance, direction) %>%
@@ -915,6 +926,47 @@ data.positioning.combined_exertion <- data.positioning.paas %>%
 
 data.positioning.combined_exertion.art_anova <- art(Score ~ Technique * ExertionType + (1|UserID), data = data.positioning.combined_exertion)
 
+data.positioning.combined_exertion.paas <- data.positioning.combined_exertion %>%
+  filter(ExertionType == "Cognitive load")
+
+data.positioning.combined_exertion.borg <- data.positioning.combined_exertion %>%
+  filter(ExertionType == "Physical exertion")
+
+data.positioning.combined_exertion.paas.art_anova <- art(
+  Score ~ Technique + (1 | UserID),
+  data = data.positioning.combined_exertion.paas
+)
+
+data.positioning.combined_exertion.borg.art_anova <- art(
+  Score ~ Technique + (1|UserID), 
+  data = data.positioning.combined_exertion.borg
+  )
+
+anova(data.positioning.combined_exertion.paas.art_anova)
+
+anova(data.positioning.combined_exertion.borg.art_anova)
+
+data.positioning.combined_exertion.paas %>%
+  group_by(Technique) %>%
+  summarise(mean_score = mean(Score, na.rm = TRUE)) %>%
+  pivot_wider(names_from = Technique, values_from = mean_score) %>%
+  mutate(
+    `rotatingGlobe_mean` = `rotatingGlobe`,
+    `nonRotatingGlobe_mean` = `nonRotatingGlobe`,
+    percent_diff = (`rotatingGlobe` - `nonRotatingGlobe`) / `nonRotatingGlobe` * 100
+  ) %>%
+  select(rotatingGlobe_mean, nonRotatingGlobe_mean, percent_diff)
+
+data.positioning.combined_exertion.borg %>%
+  group_by(Technique) %>%
+  summarise(mean_score = mean(Score, na.rm = TRUE)) %>%
+  pivot_wider(names_from = Technique, values_from = mean_score) %>%
+  mutate(
+    `rotatingGlobe_mean` = `rotatingGlobe`,
+    `nonRotatingGlobe_mean` = `nonRotatingGlobe`,
+    percent_diff = (`rotatingGlobe` - `nonRotatingGlobe`) / `nonRotatingGlobe` * 100
+  ) %>%
+  select(rotatingGlobe_mean, nonRotatingGlobe_mean, percent_diff)
 
 ggplot(data.positioning.combined_exertion, aes(x = Technique, y = Score, fill = ExertionType)) +
   geom_boxplot(width = 0.1, position = position_dodge(0.8)) +
@@ -1263,6 +1315,8 @@ data.rotating.matched.accuracy_avg.long %>%
   theme_minimal() +
   theme(axis.text.x = element_text())
 
+ggsave("Rotating_technique_accuracy.svg")
+
 # Plotting for complexity factor
 data.rotating.matched.accuracy_avg.long %>%
   group_by(complexity) %>%
@@ -1293,6 +1347,7 @@ data.rotating.matched.accuracy_avg.long %>%
   theme_minimal() +
   theme(axis.text.x = element_text())
 
+ggsave("Rotating_complexity_accuracy.svg")
 
 # Plotting for both rotation factors and techniques
 data.rotating.matched.accuracy_avg.long %>%
@@ -1443,6 +1498,8 @@ data.rotating.taskCompletion_avg.long %>%
   theme_minimal() +
   theme(axis.text.x = element_text())
 
+ggsave("rotating_technique_time.svg")
+
 # Plotting for complexity factors
 data.rotating.taskCompletion_avg.long %>%
   group_by(complexity) %>%
@@ -1472,6 +1529,8 @@ data.rotating.taskCompletion_avg.long %>%
   ) +
   theme_minimal() +
   theme(axis.text.x = element_blank())
+
+ggsave("rotating_complexity_time.svg")
 
 # Plotting for both rotation Factors and Technique
 data.rotating.taskCompletion_avg.long %>%
@@ -1588,6 +1647,49 @@ data.rotating.combined_exertion <- data.rotating.paas %>%
 data.rotating.combined_exertion.art_anova <- art(Score ~ Technique * ExertionType + (1|UserID), data = data.rotating.combined_exertion)
 
 anova(data.rotating.combined_exertion.art_anova)
+
+data.rotating.combined_exertion.paas <- data.rotating.combined_exertion %>%
+  filter(ExertionType == "Cognitive load")
+
+data.rotating.combined_exertion.borg <- data.rotating.combined_exertion %>%
+  filter(ExertionType == "Physical exertion")
+
+data.rotating.combined_exertion.paas.art_anova <- art(
+  Score ~ Technique + (1 | UserID),
+  data = data.rotating.combined_exertion.paas
+)
+
+data.rotating.combined_exertion.borg.art_anova <- art(
+  Score ~ Technique + (1|UserID), 
+  data = data.rotating.combined_exertion.borg
+  )
+
+anova(data.rotating.combined_exertion.paas.art_anova)
+
+anova(data.rotating.combined_exertion.borg.art_anova)
+
+
+data.rotating.combined_exertion.paas %>%
+  group_by(Technique) %>%
+  summarise(mean_score = mean(Score, na.rm = TRUE)) %>%
+  tidyr::pivot_wider(names_from = Technique, values_from = mean_score) %>%
+  mutate(
+    twoHanded_mean = twoHanded,
+    oneHanded_mean = oneHanded,
+    percent_diff = (twoHanded - oneHanded) / oneHanded * 100
+  ) %>%
+  select(twoHanded_mean, oneHanded_mean, percent_diff)
+
+data.rotating.combined_exertion.borg %>%
+  group_by(Technique) %>%
+  summarise(mean_score = mean(Score, na.rm = TRUE)) %>%
+  tidyr::pivot_wider(names_from = Technique, values_from = mean_score) %>%
+  mutate(
+    twoHanded_mean = twoHanded,
+    oneHanded_mean = oneHanded,
+    percent_diff = (twoHanded - oneHanded) / oneHanded * 100
+  ) %>%
+  select(twoHanded_mean, oneHanded_mean, percent_diff)
 
 
 # 	•	Main effect of rotationCondition: F(1, 33) = 4.28, p = 0.0466 This is statistically significant at the 0.05 level, indicating that rotating vs non-rotating globe conditions have a meaningful impact on participants’ perceived exertion scores (cognitive or physical).
@@ -2138,6 +2240,8 @@ data.scale.taskCompletion_avg.long %>%
   theme(axis.text.x = element_blank(),
         plot.title = element_text(hjust = 0.5))
 
+ggsave("scaling_direction_time.svg")
+
 # Plotting for both Position Factors and Technique
 data.scale.taskCompletion_avg.long %>%
   group_by(scaleCondition, zoomDirection) %>%
@@ -2248,6 +2352,48 @@ data.scale.combined_exertion <- data.scale.paas %>%
   )
 
 data.scale.combined_exertion.art_anova <- art(Score ~ Technique * ExertionType + (1|UserID), data = data.scale.combined_exertion)
+
+data.scale.combined_exertion.paas <- data.scale.combined_exertion %>%
+  filter(ExertionType == "Cognitive load")
+
+data.scale.combined_exertion.borg <- data.scale.combined_exertion %>%
+  filter(ExertionType == "Physical exertion")
+
+data.scale.combined_exertion.paas.art_anova <- art(
+  Score ~ Technique + (1 | UserID),
+  data = data.scale.combined_exertion.paas
+)
+
+data.scale.combined_exertion.borg.art_anova <- art(
+  Score ~ Technique + (1|UserID), 
+  data = data.scale.combined_exertion.borg
+  )
+
+anova(data.scale.combined_exertion.paas.art_anova)
+
+anova(data.scale.combined_exertion.borg.art_anova)
+
+data.scale.combined_exertion.paas %>%
+  group_by(Technique) %>%
+  summarise(mean_score = mean(Score, na.rm = TRUE)) %>%
+  tidyr::pivot_wider(names_from = Technique, values_from = mean_score) %>%
+  mutate(
+    movingGlobe_mean = movingGlobe,
+    nonMovingGlobe_mean = nonMovingGlobe,
+    percent_diff = (movingGlobe - nonMovingGlobe) / nonMovingGlobe * 100
+  ) %>%
+  select(movingGlobe_mean, nonMovingGlobe_mean, percent_diff)
+
+data.scale.combined_exertion.borg %>%
+  group_by(Technique) %>%
+  summarise(mean_score = mean(Score, na.rm = TRUE)) %>%
+  tidyr::pivot_wider(names_from = Technique, values_from = mean_score) %>%
+  mutate(
+    movingGlobe_mean = movingGlobe,
+    nonMovingGlobe_mean = nonMovingGlobe,
+    percent_diff = (movingGlobe - nonMovingGlobe) / nonMovingGlobe * 100
+  ) %>%
+  select(movingGlobe_mean, nonMovingGlobe_mean, percent_diff)
 
 
 ggplot(data.scale.combined_exertion, aes(x = Technique, y = Score, fill = ExertionType)) +
