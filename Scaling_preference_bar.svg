@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='525.00pt' height='324.47pt' viewBox='0 0 525.00 324.47'>
+<g class='svglite'>
+<defs>
+  <style type='text/css'><![CDATA[
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite rect, .svglite circle {
+      fill: none;
+      stroke: #000000;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite text {
+      white-space: pre;
+    }
+    .svglite g.glyphgroup path {
+      fill: inherit;
+      stroke: none;
+    }
+  ]]></style>
+</defs>
+<rect width='100%' height='100%' style='stroke: none; fill: none;'/>
+<defs>
+  <clipPath id='cpMC4wMHw1MjUuMDB8MC4wMHwzMjQuNDc='>
+    <rect x='0.00' y='0.00' width='525.00' height='324.47' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw1MjUuMDB8MC4wMHwzMjQuNDc=)'>
+</g>
+<defs>
+  <clipPath id='cpMTQzLjMyfDQ4NS4xNXw5Ljk2fDMxMS43Nw=='>
+    <rect x='143.32' y='9.96' width='341.83' height='301.81' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMTQzLjMyfDQ4NS4xNXw5Ljk2fDMxMS43Nw==)'>
+<polyline points='197.70,311.77 197.70,9.96 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='275.39,311.77 275.39,9.96 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='353.08,311.77 353.08,9.96 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='430.77,311.77 430.77,9.96 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='143.32,255.18 485.15,255.18 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='143.32,160.87 485.15,160.87 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='143.32,66.55 485.15,66.55 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='158.85,311.77 158.85,9.96 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='236.54,311.77 236.54,9.96 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='314.23,311.77 314.23,9.96 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='391.92,311.77 391.92,9.96 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='469.61,311.77 469.61,9.96 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<rect x='158.85' y='42.97' width='310.76' height='47.16' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #999999;' />
+<rect x='158.85' y='137.29' width='77.69' height='47.16' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #CCCCCC;' />
+<rect x='158.85' y='231.60' width='77.69' height='47.16' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #E5E5E5;' />
+<text x='476.01' y='71.26' style='font-size: 14.23px; font-family: "Times New Roman";' textLength='7.11px' lengthAdjust='spacingAndGlyphs'>8</text>
+<text x='242.94' y='165.58' style='font-size: 14.23px; font-family: "Times New Roman";' textLength='7.11px' lengthAdjust='spacingAndGlyphs'>2</text>
+<text x='242.94' y='259.89' style='font-size: 14.23px; font-family: "Times New Roman";' textLength='7.11px' lengthAdjust='spacingAndGlyphs'>2</text>
+</g>
+<g clip-path='url(#cpMC4wMHw1MjUuMDB8MC4wMHwzMjQuNDc=)'>
+<text x='138.38' y='261.14' text-anchor='end' style='font-size: 18.00px;fill: #4D4D4D; font-family: "Times New Roman";' textLength='102.42px' lengthAdjust='spacingAndGlyphs'>No preference</text>
+<text x='138.38' y='166.83' text-anchor='end' style='font-size: 18.00px;fill: #4D4D4D; font-family: "Times New Roman";' textLength='127.47px' lengthAdjust='spacingAndGlyphs'>Maintain position</text>
+<text x='138.38' y='72.51' text-anchor='end' style='font-size: 18.00px;fill: #4D4D4D; font-family: "Times New Roman";' textLength='128.42px' lengthAdjust='spacingAndGlyphs'>Maintain distance</text>
+</g>
+</g>
+</svg>

@@ -30,6 +30,9 @@ library(scales)
 library(ARTool)
 library(knitr)
 library(kableExtra)
+library(patchwork)
+library(emmeans)
+
 
 data <- read_csv("study_tasks.csv")
 demographic <- read_csv("final_introductory.csv")
@@ -523,7 +526,6 @@ So, we cannot use one way ANOVA, instead, we use ART ANOVA test
 
 ```{r PositionStudy - Accuracy - Statistical tests}
 
-
 data.positioning.matched <- data.positioning %>%
   filter(status == "Matched")
 
@@ -534,6 +536,13 @@ data.positioning.matched.accuracy_avg.long <- data.positioning.matched %>%
 data.positioning.matched.art <- art(mean_accuracy ~ positionCondition * distance * direction + (1|UserID), data = data.positioning.matched.accuracy_avg.long)
 
 anova(data.positioning.matched.art)
+
+art_direction_accuracy <- artlm(data.positioning.matched.art, "direction")
+
+# Pairwise of direction
+emmeans_direction_accuracy <- emmeans(art_direction_accuracy, pairwise ~ direction)
+
+emmeans_direction_accuracy$contrasts
 
 	# •	The main effect of positionCondition was not statistically significant: F(1, 99) = 0.89, p = 0.348.
 	# •	The main effect of distance was statistically significant: F(1, 99.55) = 8.58, p = 0.0042 (**).
@@ -574,7 +583,6 @@ data.positioning.matched.accuracy_avg.long %>%
   theme_minimal() +
   theme(axis.text.x = element_text())  
 
-# Plotting for distance conditions
 data.positioning.matched.accuracy_avg.long %>%
   group_by(distance) %>%
   summarise(
@@ -584,20 +592,22 @@ data.positioning.matched.accuracy_avg.long %>%
     .groups = "drop"
   ) %>%
   ggplot(aes(x = distance, y = mean_mean_accuracy, fill = distance)) +
-  geom_col(width = 0.6) +
+  geom_col(width = 0.3) +  
   geom_errorbar(aes(ymin = mean_mean_accuracy - ci, ymax = mean_mean_accuracy + ci), width = 0.2) +
   labs(
-    title = "Mean Match Accuracy by Globes' Separation Distance",
     x = "Globe Distance",
-    y = "Mean Accuracy",
-    fill = "Globe Distance"
+    y = "Mean Accuracy"
   ) +
   scale_fill_manual(
     values = c(near = "#a6bddb",  
                far = "#d0d1e6")  
   ) +
   theme_minimal() +
-  theme(axis.text.x = element_text())
+  theme(
+    axis.text.x = element_text(),
+    legend.position = "none"  
+  ) +
+  coord_flip()
 
 ggsave("Position_distance_bar.svg")
 
@@ -614,7 +624,6 @@ data.positioning.matched.accuracy_avg.long %>%
   geom_col(width = 0.6) +
   geom_errorbar(aes(ymin = mean_mean_accuracy - ci, ymax = mean_mean_accuracy + ci), width = 0.2) +
   labs(
-    title = "Mean Match Accuracy by Globes' Separation Direction",
     x = "Globe Direction",
     y = "Mean Accuracy",
     fill = "Globe Direction"
@@ -625,7 +634,10 @@ data.positioning.matched.accuracy_avg.long %>%
              vertical = "#b8e0d2")  
   ) +
   theme_minimal() +
-  theme(axis.text.x = element_text())
+  theme(axis.text.x = element_text(),
+            legend.position = "none"  
+  ) +
+  coord_flip()
 
 ggsave("Position_direction_bar.svg")
 
@@ -658,7 +670,9 @@ data.positioning.matched.accuracy_avg.long %>%
                "Static orientation" = "#d0d1e6")  
   ) +
   theme_minimal() +
-  theme(axis.text.x = element_blank())
+  theme(axis.text.x = element_blank()) +
+  coord_flip()  
+
 
 ggsave("Position_direction_distance_bar.svg")
 
@@ -695,6 +709,73 @@ data.positioning.matched.accuracy_avg.long %>%
   summarise(mean_accuracy = mean(mean_accuracy)) %>%
   arrange(desc(mean_accuracy)) %>%
   mutate(percent_diff_from_lowest = (mean_accuracy - min(mean_accuracy)) / min(mean_accuracy) * 100)
+
+```
+
+```{r combined significant plots for positioning}
+
+# ---- Plot 1: Distance (Accuracy) ----
+plot_distance <- data.positioning.matched.accuracy_avg.long %>%
+  group_by(distance) %>%
+  summarise(
+    mean_mean_accuracy = mean(mean_accuracy, na.rm = TRUE),
+    se = sd(mean_accuracy, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = distance, y = mean_mean_accuracy, fill = distance)) +
+  geom_col(width = 0.3) +  
+  geom_errorbar(aes(ymin = mean_mean_accuracy - ci, ymax = mean_mean_accuracy + ci), width = 0.2) +
+  geom_text(aes(label = round(mean_mean_accuracy, 2)), hjust = -0.2, size = 3.5) +  # Value labels
+  labs(x = "Globe Distance", y = "Mean Accuracy") +
+  scale_fill_manual(values = c(near = "#a6bddb", far = "#d0d1e6")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(), legend.position = "none") +
+  coord_flip()
+
+# ---- Plot 2: Direction (Accuracy) ----
+plot_direction <- data.positioning.matched.accuracy_avg.long %>%
+  group_by(direction) %>%
+  summarise(
+    mean_mean_accuracy = mean(mean_accuracy, na.rm = TRUE),
+    se = sd(mean_accuracy, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = direction, y = mean_mean_accuracy, fill = direction)) +
+  geom_col(width = 0.5) +
+  geom_errorbar(aes(ymin = mean_mean_accuracy - ci, ymax = mean_mean_accuracy + ci), width = 0.2) +
+  geom_text(aes(label = round(mean_mean_accuracy, 2)), hjust = -0.2, size = 3.5) +
+  labs(x = "Globe Direction", y = "Mean Accuracy") +
+  scale_fill_manual(values = c(diagonal = "#a6bddb", horizontal = "#d0d1e6", vertical = "#b8e0d2")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(), legend.position = "none") +
+  coord_flip()
+
+# ---- Plot 3: Direction (Task Completion Time) ----
+plot_time <- data.positioning.taskCompletion_avg.long %>%
+  group_by(direction) %>%
+  summarise(
+    mean_mean_time = mean(avg_completion_time, na.rm = TRUE),
+    se = sd(avg_completion_time, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = direction, y = mean_mean_time, fill = direction)) +
+  geom_col(width = 0.5) +
+  geom_errorbar(aes(ymin = mean_mean_time - ci, ymax = mean_mean_time + ci), width = 0.2) +
+  geom_text(aes(label = round(mean_mean_time, 2)), hjust = -0.2, size = 3.5) +
+  labs(x = "Globe Direction", y = "Avg Completion Time") +
+  scale_fill_manual(values = c(diagonal = "#a6bddb", horizontal = "#d0d1e6", vertical = "#b8e0d2")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(), legend.position = "none") +
+  coord_flip()
+
+# ---- Combine & Save ----
+combined_plot <- plot_distance / plot_direction / plot_time
+
+ggsave("Combined_three_plots_with_labels.svg", combined_plot, width = 10, height = 12)
+
 ```
 
 ##### Completion Time
@@ -734,6 +815,18 @@ data.positioning.taskCompletion_avg.long <- data.positioning %>%
 data.positioning.taskCompletion_avg.art <- art(avg_completion_time ~ positionCondition * distance * direction + (1|UserID), data = data.positioning.taskCompletion_avg.long)
 
 anova(data.positioning.taskCompletion_avg.art)
+
+anova(data.positioning.taskCompletion_avg.art)
+
+art_direction_time <- artlm(data.positioning.taskCompletion_avg.art, "direction")
+
+# Pairwise of direction
+emmeans_direction_time <- emmeans(art_direction_time, pairwise ~ direction)
+
+emmeans_direction_time$contrasts
+```
+
+```{r}
 
 # •	positionCondition had no significant effect on average task completion time:F(1, 99.00) = 0.61, p = 0.435
 # •	distance also showed no significant effect:F(1, 100.62) = 1.75, p = 0.189
@@ -1123,24 +1216,23 @@ data.positioning.qualitative %>%
     )
   ) %>%
   ggplot(aes(x = n, y = reorder(Preference, n), fill = Preference)) +
-  geom_col(width = 0.8) +  
-  geom_text(aes(label = n), hjust = -0.9, size = 5) +  
+  geom_col(width = 0.5) +  # Slimmer bars
+  geom_text(aes(label = n), hjust = -0.9, size = 5, family = "Times New Roman") +  # Times font
   labs(
-    title = "Distribution of Positioning Technique\nPreferences",
     x = NULL,
     y = NULL,
     fill = "Preference"
   ) +
   scale_fill_manual(
     values = c(
-      "Adaptive orientation" = "#a6bddb",
-      "Static orientation" = "#d0d1e6",
-      "No preference" = "#b8e0d2"
+      "Adaptive orientation" = "gray60",
+      "Static orientation" = "gray80",
+      "No preference" = "gray90"
     )
   ) +
-  theme_minimal() +
+  theme_minimal(base_family = "Times New Roman") +  # Set Times New Roman globally
   theme(
-    plot.title = element_text(hjust = 0.5, size = 20),
+    plot.title = element_blank(),  # Remove title
     legend.position = "none",
     plot.margin = margin(10, 30, 10, 10),
     axis.text.y = element_text(size = 18),
@@ -1148,6 +1240,7 @@ data.positioning.qualitative %>%
   ) +
   xlim(0, NA)
 
+ggsave("Position_preference_bar.svg")
 
 ```
 
@@ -1426,6 +1519,117 @@ data.rotating.matched.accuracy_avg.long %>%
 
 data.rotating.matched.accuracy_avg.long
 ```
+
+```{r rotating combined plots}
+
+# ---- Plot 1: Accuracy by rotation technique ----
+plot_rotate_acc_technique <- data.rotating.matched.accuracy_avg.long %>%
+  group_by(rotationCondition) %>%
+  summarise(
+    mean_mean_accuracy = mean(mean_accuracy, na.rm = TRUE),
+    se = sd(mean_accuracy, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  mutate(rotationCondition = case_when(
+    rotationCondition == "oneHanded" ~ "One-Handed",
+    rotationCondition == "twoHanded" ~ "Two-Handed",
+    TRUE ~ as.character(rotationCondition)
+  )) %>%
+  ggplot(aes(x = rotationCondition, y = mean_mean_accuracy, fill = rotationCondition)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_accuracy - ci, ymax = mean_mean_accuracy + ci), width = 0.2) +
+  labs(x = "Rotating technique", y = "Mean accuracy") +
+  scale_fill_manual(values = c("One-Handed" = "#a6bddb", "Two-Handed" = "#d0d1e6")) +
+  coord_flip() +
+  ylim(0, 0.225)  +
+  theme_minimal(base_family = "Times New Roman") +
+  theme(legend.position = "none")
+
+# ---- Plot 2: Accuracy by rotation angle ----
+plot_rotate_acc_angle <- data.rotating.matched.accuracy_avg.long %>%
+  group_by(complexity) %>%
+  summarise(
+    mean_mean_accuracy = mean(mean_accuracy, na.rm = TRUE),
+    se = sd(mean_accuracy, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  mutate(complexity = case_when(
+    complexity == "simple" ~ "Small Angle",
+    complexity == "complex" ~ "Large Angle",
+    TRUE ~ as.character(complexity)
+  )) %>%
+  ggplot(aes(x = complexity, y = mean_mean_accuracy, fill = complexity)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_accuracy - ci, ymax = mean_mean_accuracy + ci), width = 0.2) +
+  labs(x = "Rotation angle", y = "Mean accuracy") +
+  scale_fill_manual(values = c("Small Angle" = "#a6bddb", "Large Angle" = "#d0d1e6")) +
+  coord_flip() +
+  ylim(0, 0.225) +
+  theme_minimal(base_family = "Times New Roman") +
+  theme(legend.position = "none")
+
+
+# ---- Plot 3: Completion time by rotation technique ----
+plot_rotate_time_technique <- data.rotating.taskCompletion_avg.long %>%
+  group_by(rotationCondition) %>%
+  summarise(
+    mean_mean_time = mean(avg_completion_time, na.rm = TRUE),
+    se = sd(avg_completion_time, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  mutate(rotationCondition = case_when(
+    rotationCondition == "oneHanded" ~ "One-Handed",
+    rotationCondition == "twoHanded" ~ "Two-Handed",
+    TRUE ~ as.character(rotationCondition)
+  )) %>%
+  ggplot(aes(x = rotationCondition, y = mean_mean_time, fill = rotationCondition)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_time - ci, ymax = mean_mean_time + ci), width = 0.2) +
+  labs(x = "Rotating technique", y = "Avg completion time") +
+  scale_fill_manual(values = c("One-Handed" = "#a6bddb", "Two-Handed" = "#d0d1e6")) +
+  coord_flip() +
+  ylim(0, 1)  +
+  theme_minimal(base_family = "Times New Roman") +
+  theme(legend.position = "none")
+
+# ---- Plot 4: Completion time by rotation angle ----
+plot_rotate_time_angle <- data.rotating.taskCompletion_avg.long %>%
+  group_by(complexity) %>%
+  summarise(
+    mean_mean_time = mean(avg_completion_time, na.rm = TRUE),
+    se = sd(avg_completion_time, na.rm = TRUE) / sqrt(n()),
+    ci = qt(0.975, df = n() - 1) * se,
+    .groups = "drop"
+  ) %>%
+  mutate(complexity = case_when(
+    complexity == "simple" ~ "Small Angle",
+    complexity == "complex" ~ "Large Angle",
+    TRUE ~ as.character(complexity)
+  )) %>%
+  ggplot(aes(x = complexity, y = mean_mean_time, fill = complexity)) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = mean_mean_time - ci, ymax = mean_mean_time + ci), width = 0.2) +
+  labs(x = "Rotation angle", y = "Avg completion time") +
+  scale_fill_manual(values = c("Small Angle" = "#a6bddb", "Large Angle" = "#d0d1e6")) +
+  coord_flip() +
+  ylim(0, 01) +
+  theme_minimal(base_family = "Times New Roman") +
+  theme(legend.position = "none")
+
+# ---- Combine all plots vertically ----
+combined_rotation_plot <- plot_rotate_acc_technique /
+                          plot_rotate_acc_angle /
+                          plot_rotate_time_technique /
+                          plot_rotate_time_angle
+
+# ---- Save to file ----
+ggsave("combined_rotation_plots_times_font.svg")
+
+```
+
 
 ##### Completion Time
 
@@ -1851,10 +2055,9 @@ data.rotating.qualitative %>%
     )
   ) %>%
   ggplot(aes(x = n, y = reorder(Preference, n), fill = Preference)) +
-  geom_col(width = 0.8) +  
-  geom_text(aes(label = n), hjust = -0.9, size = 5) +  
+  geom_col(width = 0.4) +  
+  geom_text(aes(label = n), hjust = -0.9, size = 5, family = "Times New Roman") +
   labs(
-    title = "Distribution of Rotating Technique Preferences",
     x = NULL,
     y = NULL,
     fill = "Preference"
@@ -1866,17 +2069,21 @@ data.rotating.qualitative %>%
       "No preference" = "#b8e0d2"
     )
   ) +
-  theme_minimal() +
+  scale_x_continuous(
+    limits = c(0, 9),
+    breaks = 0:9
+  ) +
+  theme_minimal(base_family = "Times New Roman") +
   theme(
     plot.title = element_text(hjust = 0.5, size = 18),
     legend.position = "none",
     plot.margin = margin(10, 60, 10, 10),
-    axis.text.y = element_text(size = 18)
-  ) +
-  scale_x_continuous(
-  limits = c(0, 9),
-  breaks = 0:9
-)
+    axis.text.y = element_text(size = 18),
+    axis.text.x = element_blank()
+  )
+
+ggsave("rotating_preference.svg")
+
 
 ```
 
@@ -2218,28 +2425,39 @@ data.scale.taskCompletion_avg.long %>%
     ci = qt(0.975, df = n() - 1) * se,
     .groups = "drop"
   ) %>%
-    mutate(
+  mutate(
     zoomDirection = case_when(
       zoomDirection == "smallToLarge" ~ "Small to Large",
       zoomDirection == "largeToSmall" ~ "Large to Small",
-      TRUE ~ as.character(zoomDirection))) %>%
+      TRUE ~ as.character(zoomDirection)
+    )
+  ) %>%
   ggplot(aes(x = zoomDirection, y = mean_mean_time, fill = zoomDirection)) +
-  geom_col(width = 0.6) +
+  geom_col(width = 0.5) +  # Slim bar
   geom_errorbar(aes(ymin = mean_mean_time - ci, ymax = mean_mean_time + ci), width = 0.2) +
+  geom_text(aes(label = round(mean_mean_time, 2)), hjust = -0.9, size = 5, family = "Times New Roman") +
   labs(
-    title = "Average Task Completion Time by Zoom Direction",
-    x = "Zoom Direction",
-    y = "Average completion time",
+    x = "Zoom direction",
+    y = "Average Completion Time",
     fill = "Zoom Direction"
   ) +
   scale_fill_manual(
-  values = c("Small to Large" = "#a6bddb",  
-           "Large to Small" = "#d0d1e6") 
+    values = c(
+      "Small to Large" = "gray60",
+      "Large to Small" = "gray80"
+    )
   ) +
-  theme_minimal() +
-  theme(axis.text.x = element_blank(),
-        plot.title = element_text(hjust = 0.5))
+  theme_minimal(base_family = "Times New Roman") +
+  theme(
+    plot.title = element_blank(),
+    legend.position = "none",
+    plot.margin = margin(10, 30, 10, 10),
+    axis.text.y = element_text(size = 18),
+    axis.text.x = element_text()
+  ) +
+  coord_flip()
 
+# Save output
 ggsave("scaling_direction_time.svg")
 
 # Plotting for both Position Factors and Technique
@@ -2548,31 +2766,34 @@ data.scale.qualitative %>%
       Scale_preference == "noPreference" ~ "No preference"
     )
   ) %>%
-  ggplot(aes(x = n, y = reorder(Preference, n), fill = Preference)) +
-  geom_col(width = 0.8) +  
-  geom_text(aes(label = n), hjust = -0.9, size = 5) +  
+  ggplot(aes(x = n, y = Preference, fill = Preference)) +
+  geom_col(width = 0.5) +
+  geom_text(aes(label = n), hjust = -0.9, size = 5, family = "Times New Roman") +
   labs(
-    title = "Distribution of Scaling Technique\nPreferences",
     x = NULL,
     y = NULL,
     fill = "Preference"
   ) +
   scale_fill_manual(
     values = c(
-      "Maintain distance" = "#a6bddb",
-      "Maintain position" = "#d0d1e6",
-      "No preference" = "#b8e0d2"
+      "Maintain distance" = "gray60",
+      "Maintain position" = "gray80",
+      "No preference" = "gray90"
     )
   ) +
-  theme_minimal() +
+  scale_y_discrete(limits = c("No preference", "Maintain position", "Maintain distance")) +  # fixes order
+  theme_minimal(base_family = "Times New Roman") +
   theme(
-    plot.title = element_text(hjust = 0.5, size = 18),
+    plot.title = element_blank(),
     legend.position = "none",
     plot.margin = margin(10, 40, 10, 10),
     axis.text.y = element_text(size = 18),
     axis.text.x = element_blank()
   ) +
   xlim(0, NA)
+
+
+ggsave("Scaling_preference_bar.svg")
 ```
 
 ###### Comments
@@ -2630,56 +2851,75 @@ data.combined.qualitative %>%
     Positioning_preference = case_when(
       Positioning_preference == "adaptiveOrientation" ~ "Adaptive Orientation",
       Positioning_preference == "staticOrientation" ~ "Static Orientation",
-      Positioning_preference == "noPreference" ~ "No Preference",
-      TRUE ~ as.character(Positioning_preference)
+      Positioning_preference == "noPreference" ~ "No Preference"
     ),
     Rotation_preference = case_when(
-      Rotation_preference == "oneHandedPreference" ~ "One Handed Preference",
-      Rotation_preference == "twoHandedPreference" ~ "Two Handed Preference",
-      Rotation_preference == "noPreference" ~ "No Preference",
-      TRUE ~ as.character(Rotation_preference)
+      Rotation_preference == "oneHandedPreference" ~ "One-Handed",
+      Rotation_preference == "twoHandedPreference" ~ "Two-Handed",
+      Rotation_preference == "noPreference" ~ "No Preference"
     ),
     Scale_preference = case_when(
-      Scale_preference == "maintainDistance" ~ "Maintains Distance",
-      Scale_preference == "maintainGlobe" ~ "Maintains Position",
-      Scale_preference == "noPreference" ~ "No Preference",
-      TRUE ~ as.character(Scale_preference)
+      Scale_preference == "maintainDistance" ~ "Maintain Distance",
+      Scale_preference == "maintainGlobe" ~ "Maintain Position",
+      Scale_preference == "noPreference" ~ "No Preference"
     )
   ) %>%
   pivot_longer(
-    cols = c(Positioning_preference, Rotation_preference, Scale_preference),
+    cols = c(Positioning_preference, Scale_preference, Rotation_preference),
     names_to = "Interaction_Type",
     values_to = "Preference"
   ) %>%
   mutate(
-  Interaction_Type = factor(
-    Interaction_Type,
-    levels = c("Positioning_preference", "Scale_preference", "Rotation_preference")
-  )
+    Interaction_Type = factor(Interaction_Type, levels = c(
+      "Positioning_preference", "Scale_preference", "Rotation_preference"
+    )),
+    Preference = case_when(
+      Interaction_Type == "Positioning_preference" ~ factor(Preference,
+        levels = c("Static Orientation", "Adaptive Orientation", "No Preference")),
+      Interaction_Type == "Scale_preference" ~ factor(Preference,
+        levels = c("Maintain Distance", "Maintain Position", "No Preference")),
+      Interaction_Type == "Rotation_preference" ~ factor(Preference,
+        levels = c("One-Handed", "Two-Handed", "No Preference")),
+      TRUE ~ Preference
+    )
   ) %>%
   ggplot(aes(x = Preference, fill = Preference)) +
-  geom_bar(show.legend = FALSE) +
+  geom_bar(show.legend = FALSE, width = 0.6) +
+  geom_text(stat = "count", aes(label = ..count..), hjust = -0.3, size = 5, family = "Times New Roman") +
   facet_wrap(
     ~ Interaction_Type,
     scales = "free",
-    labeller = labeller(Interaction_Type = interaction_labels),
+    labeller = labeller(Interaction_Type = c(
+      Positioning_preference = "Positioning",
+      Scale_preference = "Scaling",
+      Rotation_preference = "Rotating"
+    )),
     ncol = 1
   ) +
   scale_y_continuous(breaks = 1:10, limits = c(0, 10)) +
-  scale_fill_manual(values = c("#a6bddb", "#a6bddb", "#a6bddb", "#a6bddb", "#a6bddb", "#a6bddb", "#a6bddb"
+  scale_fill_manual(values = c(
+    "Static Orientation" = "gray60",
+    "Adaptive Orientation" = "gray70",
+    "No Preference" = "gray90",
+    "Maintain Distance" = "gray60",
+    "Maintain Position" = "gray70",
+    "One-Handed" = "gray60",
+    "Two-Handed" = "gray70"
   )) +
   coord_flip() +
   labs(
-    title = "Technique Preference Distribution\nin Combined Gestures",
     x = NULL,
     y = "Count"
   ) +
-  theme_minimal(base_size = 14) +
+  theme_minimal(base_family = "Times New Roman", base_size = 14) +
   theme(
-    axis.text.x = element_text(angle = 0),
-    strip.text = element_text(face = "bold"),
-    plot.title = element_text(hjust = 0.5)
+    axis.text.x = element_blank(),   
+    axis.text.y = element_text(size = 13),
+    strip.text = element_text(face = "bold", size = 14),
+    plot.title = element_blank()
   )
+
+ggsave("combined_preference.svg")
 
 data.combined.qualitative %>%
   mutate(

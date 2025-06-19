@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='525.00pt' height='324.47pt' viewBox='0 0 525.00 324.47'>
+<g class='svglite'>
+<defs>
+  <style type='text/css'><![CDATA[
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite rect, .svglite circle {
+      fill: none;
+      stroke: #000000;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite text {
+      white-space: pre;
+    }
+    .svglite g.glyphgroup path {
+      fill: inherit;
+      stroke: none;
+    }
+  ]]></style>
+</defs>
+<rect width='100%' height='100%' style='stroke: none; fill: none;'/>
+<defs>
+  <clipPath id='cpMC4wMHw1MjUuMDB8MC4wMHwzMjQuNDc='>
+    <rect x='0.00' y='0.00' width='525.00' height='324.47' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw1MjUuMDB8MC4wMHwzMjQuNDc=)'>
+</g>
+<defs>
+  <clipPath id='cpMTYzLjMzfDQ5NS4xMXw5Ljk2fDMxMS43Nw=='>
+    <rect x='163.33' y='9.96' width='331.78' height='301.81' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMTYzLjMzfDQ5NS4xMXw5Ljk2fDMxMS43Nw==)'>
+<polyline points='221.50,311.77 221.50,9.96 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='307.68,311.77 307.68,9.96 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='393.85,311.77 393.85,9.96 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='480.03,311.77 480.03,9.96 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='163.33,255.18 495.11,255.18 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='163.33,160.87 495.11,160.87 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='163.33,66.55 495.11,66.55 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='178.41,311.77 178.41,9.96 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='264.59,311.77 264.59,9.96 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='350.77,311.77 350.77,9.96 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='436.94,311.77 436.94,9.96 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<rect x='178.41' y='137.29' width='172.35' height='47.16' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #999999;' />
+<rect x='178.41' y='231.60' width='43.09' height='47.16' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #E5E5E5;' />
+<rect x='178.41' y='42.97' width='301.62' height='47.16' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #CCCCCC;' />
+<text x='357.16' y='165.58' style='font-size: 14.23px; font-family: "Times New Roman";' textLength='7.11px' lengthAdjust='spacingAndGlyphs'>4</text>
+<text x='227.90' y='259.89' style='font-size: 14.23px; font-family: "Times New Roman";' textLength='7.11px' lengthAdjust='spacingAndGlyphs'>1</text>
+<text x='486.43' y='71.26' style='font-size: 14.23px; font-family: "Times New Roman";' textLength='7.11px' lengthAdjust='spacingAndGlyphs'>7</text>
+</g>
+<g clip-path='url(#cpMC4wMHw1MjUuMDB8MC4wMHwzMjQuNDc=)'>
+<text x='158.40' y='261.14' text-anchor='end' style='font-size: 18.00px;fill: #4D4D4D; font-family: "Times New Roman";' textLength='102.42px' lengthAdjust='spacingAndGlyphs'>No preference</text>
+<text x='158.40' y='166.83' text-anchor='end' style='font-size: 18.00px;fill: #4D4D4D; font-family: "Times New Roman";' textLength='148.44px' lengthAdjust='spacingAndGlyphs'>Adaptive orientation</text>
+<text x='158.40' y='72.51' text-anchor='end' style='font-size: 18.00px;fill: #4D4D4D; font-family: "Times New Roman";' textLength='123.45px' lengthAdjust='spacingAndGlyphs'>Static orientation</text>
+</g>
+</g>
+</svg>
